@@ -1,0 +1,40 @@
+---
+import type { Blog } from '@/lib/database.types';
+import { publicStorageUrl } from '@/utils/storage';
+
+export interface Props {
+  blog: Blog;
+}
+
+const { blog: b } = Astro.props;
+const supabase = Astro.locals.supabase;
+const published = b.published_at ? new Date(b.published_at) : new Date(b.created_at);
+const day = published.getDate();
+const month = published.toLocaleDateString('en-US', { month: 'long' });
+---
+
+<article class="position-relative h-100">
+  <div class="post-img position-relative overflow-hidden">
+    <img src={publicStorageUrl(supabase, b.thumbnail) || '/assets-user/img/blog/blog-post-1.webp'} class="img-fluid" alt={b.title} loading="lazy" />
+  </div>
+
+  <div class="meta d-flex align-items-end">
+    <span class="post-date"><span>{day}</span>{month}</span>
+    <div class="d-flex align-items-center">
+      <i class="bi bi-person"></i> <span class="ps-2">{b.author || 'Admin'}</span>
+    </div>
+    {b.category && (
+      <>
+        <span class="px-3 text-black-50">/</span>
+        <div class="d-flex align-items-center">
+          <i class="bi bi-folder2"></i> <span class="ps-2">{b.category.name}</span>
+        </div>
+      </>
+    )}
+  </div>
+
+  <div class="post-content d-flex flex-column">
+    <h3 class="post-title">{b.title}</h3>
+    <a href={`/blog/${b.slug}`} class="readmore stretched-link"><span>Read More</span><i class="bi bi-arrow-right"></i></a>
+  </div>
+</article>

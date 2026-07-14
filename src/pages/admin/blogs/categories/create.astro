@@ -1,0 +1,56 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+---
+
+<AdminLayout title="Tambah Kategori Blog">
+  <PageHeader title="Tambah Kategori Blog" crumbs={[{ label: 'Blog' }, { label: 'Categories', href: '/admin/blogs/categories' }, { label: 'Tambah' }]}>
+    <a href="/admin/blogs/categories" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <form method="post" action="/api/admin/blogs/categories" id="categoryForm">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Kategori</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Nama Kategori" name="name" required error={fieldError('name')} />
+            <FormField label="Slug (opsional)" name="slug" help="Kosongkan untuk membuat otomatis dari nama." error={fieldError('slug')} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-4" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Kategori
+        </button>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('categoryForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

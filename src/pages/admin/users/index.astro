@@ -1,0 +1,173 @@
+---
+// Batch 3A-8 — Users list. Mirrors /admin/blogs/index.astro's
+// search+sort+pagination+filter shell. Admin-only: the middleware already
+// gates every /admin/** route to admin/editor, but this module additionally
+// requires role=admin specifically (per the master prompt), so guard here
+// too — AdminSidebar already hides the nav link for editors, but a direct
+// URL visit must still be blocked.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listUsers } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+import { USER_ROLES } from '@/lib/constants';
+import type { UserRole } from '@/lib/database.types';
+
+const currentUser = Astro.locals.user;
+if (currentUser?.role !== 'admin') {
+  return Astro.redirect('/admin/dashboard?toast=' + encodeURIComponent('Hanya admin yang dapat mengakses halaman Users.') + '&toastType=error');
+}
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const role = (searchParams.get('role') as UserRole | null) ?? undefined;
+const activeParam = searchParams.get('active');
+const activeOnly = activeParam === '1';
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: users, count, totalPages } = await listUsers(supabase, {
+  q: q || undefined,
+  role,
+  activeOnly,
+  page,
+  perPage,
+});
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/blogs and /admin/destinations.
+const sorted = [...users].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'name') cmp = a.name.localeCompare(b.name);
+  else if (sort === 'email') cmp = a.email.localeCompare(b.email);
+  else if (sort === 'role') cmp = a.role.localeCompare(b.role);
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const roleLabel = (r: string) => (r.charAt(0).toUpperCase() + r.slice(1));
+
+function filterHref(next: Partial<{ role: string; active: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (sort) params.set('sort', sort);
+  if (dir) params.set('dir', dir);
+  const nextRole = 'role' in next ? next.role : role;
+  if (nextRole) params.set('role', nextRole);
+  const nextActive = 'active' in next ? next.active : (activeOnly ? '1' : '');
+  if (nextActive) params.set('active', nextActive);
+  return `/admin/users?${params.toString()}`;
+}
+---
+
+<AdminLayout title="Users">
+  <div class="page-users">
+    <PageHeader title="Users" crumbs={[{ label: 'Users' }]}>
+      <a href="/admin/users/create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Tambah Pengguna
+      </a>
+    </PageHeader>
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    <DataTable
+      columns={[
+        { key: 'name', label: 'User', sortable: true },
+        { key: 'role', label: 'Role', sortable: true },
+        { key: 'status', label: 'Status' },
+        { key: 'created_at', label: 'Bergabung', sortable: true },
+      ]}
+      basePath="/admin/users"
+      searchParams={searchParams}
+      searchPlaceholder="Cari nama atau email..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="pengguna"
+      isEmpty={sorted.length === 0}
+      emptyIcon="bi bi-people"
+      emptyTitle={q ? 'Pengguna tidak ditemukan' : 'Belum ada pengguna'}
+      emptyText={q ? `Tidak ada pengguna yang cocok dengan "${q}".` : 'Mulai dengan menambahkan pengguna staf pertama Anda.'}
+    >
+      <Fragment slot="filters">
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-funnel me-1"></i> {role ? roleLabel(role) : 'Semua Role'}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href={filterHref({ role: '' })}>Semua Role</a></li>
+            {USER_ROLES.map((r) => (
+              <li><a class="dropdown-item" href={filterHref({ role: r })}>{roleLabel(r)}</a></li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-toggle-on me-1"></i> {activeOnly ? 'Aktif Saja' : 'Semua Status'}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href={filterHref({ active: '' })}>Semua Status</a></li>
+            <li><a class="dropdown-item" href={filterHref({ active: '1' })}>Aktif Saja</a></li>
+          </ul>
+        </div>
+      </Fragment>
+
+      {sorted.map((u) => (
+        <tr>
+          <td>
+            <div class="user-info">
+              <div class="user-avatar-wrap">
+                <img src={u.avatar_url ? publicStorageUrl(supabase, u.avatar_url) : '/assets-admin/img/profile-img.webp'} alt={u.name} class="user-avatar" />
+              </div>
+              <div class="user-details">
+                <a href={`/admin/users/${u.id}`} class="user-name">{u.name}</a>
+                <div class="user-email">{u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class={`role-badge ${u.role === 'admin' ? 'admin' : 'manager'}`}>{roleLabel(u.role)}</span></td>
+          <td><StatusBadge status={u.is_active ? 'active' : 'inactive'} label={u.is_active ? 'Aktif' : 'Nonaktif'} /></td>
+          <td class="users-meta">{formatDate(u.created_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <a href={`/admin/users/${u.id}`} class="users-action-btn" title="Detail">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href={`/admin/users/${u.id}/edit`} class="users-action-btn" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {u.id !== currentUser?.id && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/users/${u.id}', label: '${u.name.replace(/'/g, "\\'")}' })`}
+                >
+                  <i class="bi bi-trash3"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+
+    <ConfirmDeleteModal />
+  </div>
+</AdminLayout>

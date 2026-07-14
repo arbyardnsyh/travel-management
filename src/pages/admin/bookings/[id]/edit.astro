@@ -1,0 +1,155 @@
+---
+// Batch 3A-5 — Booking edit form (mirrors /admin/testimonials/[id]/edit.astro
+// pattern). Admin corrects customer-entered details (name/email/phone/
+// participants/travel date) plus notes — tour and status are not editable
+// here (tour is fixed at booking time; status has its own dedicated action
+// on the detail page, per booking.schema.ts).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getBookingById, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const booking = id ? await getBookingById(supabase, id) : null;
+if (!booking) {
+  return Astro.redirect('/admin/bookings?toast=' + encodeURIComponent('Booking tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'bookings', entityId: booking.id, perPage: 8 });
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+const statusLabel = booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
+---
+
+<AdminLayout title="Edit Booking">
+  <PageHeader title="Edit Booking" crumbs={[{ label: 'Transaksi' }, { label: 'Booking List', href: '/admin/bookings' }, { label: booking.customer_name }]}>
+    <a href={`/admin/bookings/${booking.id}`} class="btn btn-outline-secondary me-2">
+      <i class="bi bi-eye me-1"></i> Lihat Detail
+    </a>
+    <a href="/admin/bookings" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/bookings/${booking.id}`} id="bookingForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Customer</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Nama" name="customer_name" value={booking.customer_name} required error={fieldError('customer_name')} />
+              </div>
+              <div class="col-md-6">
+                <FormField label="Email" name="customer_email" type="email" value={booking.customer_email} required error={fieldError('customer_email')} />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Telepon" name="phone" value={booking.phone} required error={fieldError('phone')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Jumlah Peserta" name="participants" type="number" min={1} value={booking.participants} required error={fieldError('participants')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Tanggal Perjalanan" name="travel_date" type="date" value={booking.travel_date} required error={fieldError('travel_date')} />
+              </div>
+            </div>
+            <FormField label="Catatan" name="notes" as="textarea" rows={5} value={booking.notes ?? ''} error={fieldError('notes')} />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Tour</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-2">
+              <div class="text-muted small">Tour</div>
+              <div class="fw-medium">{booking.tour?.title ?? '-'}</div>
+            </div>
+            <div class="mb-2">
+              <div class="text-muted small">Destinasi</div>
+              <div class="fw-medium">{booking.tour?.destination?.name ?? '-'}</div>
+            </div>
+            <div>
+              <div class="text-muted small">Status</div>
+              <StatusBadge status={booking.status} label={statusLabel} />
+            </div>
+            <p class="text-muted small mt-3 mb-0">
+              Tour dan status tidak dapat diubah di sini. Untuk mengubah status, gunakan panel "Ubah Status" di halaman detail.
+            </p>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/bookings/${booking.id}', label: '${booking.customer_name.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus Booking
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('bookingForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

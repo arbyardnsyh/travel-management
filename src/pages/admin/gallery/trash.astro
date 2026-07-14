@@ -1,0 +1,119 @@
+---
+// Batch 3A-3 — Gallery trash (mirrors /admin/tours/trash.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listGallery } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: items, count, totalPages } = await listGallery(supabase, {
+  q: q || undefined,
+  onlyDeleted: true,
+  page,
+  perPage,
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Arsip Gallery">
+  <PageHeader title="Arsip Gallery" crumbs={[{ label: 'Konten' }, { label: 'Gallery', href: '/admin/gallery' }, { label: 'Arsip' }]}>
+    <a href="/admin/gallery" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {items.length === 0 && !q ? (
+    <div class="card">
+      <div class="card-body">
+        <EmptyState icon="bi bi-trash3" title="Arsip kosong" text="Foto galeri yang dihapus akan muncul di sini dan dapat dipulihkan kapan saja." />
+      </div>
+    </div>
+  ) : (
+    <DataTable
+      columns={[
+        { key: 'title', label: 'Foto' },
+        { key: 'category', label: 'Kategori' },
+        { key: 'deleted_at', label: 'Diarsipkan' },
+      ]}
+      basePath="/admin/gallery/trash"
+      searchParams={searchParams}
+      searchPlaceholder="Cari foto diarsipkan..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="foto"
+      isEmpty={items.length === 0}
+      emptyIcon="bi bi-search"
+      emptyTitle="Tidak ditemukan"
+      emptyText={`Tidak ada foto diarsipkan yang cocok dengan "${q}".`}
+      actionsLabel="Aksi"
+    >
+      {items.map((item) => (
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {item.image_url ? (
+                <img
+                  src={publicStorageUrl(supabase, item.image_url)}
+                  alt={item.title}
+                  width="40"
+                  height="40"
+                  class="rounded-2"
+                  style="object-fit:cover;"
+                />
+              ) : (
+                <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                  <i class="bi bi-image text-secondary"></i>
+                </div>
+              )}
+              <div class="fw-semibold text-muted">{item.title}</div>
+            </div>
+          </td>
+          <td>{item.category ?? <span class="text-muted">—</span>}</td>
+          <td class="users-meta">{formatDate(item.deleted_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <form method="post" action={`/api/admin/gallery/${item.id}/restore`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Pulihkan">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/gallery/${item.id}?permanent=1', label: '${item.title.replace(/'/g, "\\'")} (permanen)' })`}
+                >
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+  )}
+
+  <ConfirmDeleteModal />
+</AdminLayout>

@@ -1,0 +1,270 @@
+/*--------------------------------------------------------------
+# CSS Custom Properties - Color System
+# Single accent color theming with comprehensive palette
+--------------------------------------------------------------*/
+
+/* Fonts */
+:root {
+  --default-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --heading-font: "Plus Jakarta Sans", sans-serif;
+  --nav-font: "Plus Jakarta Sans", sans-serif;
+  --mono-font: "JetBrains Mono", "Fira Code", "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+}
+
+/* Spacing Scale */
+:root {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+}
+
+/* Border Radius */
+:root {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-full: 9999px;
+}
+
+/* Shadows */
+:root {
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 30px -6px rgb(0 0 0 / 0.1), 0 8px 12px -6px rgb(0 0 0 / 0.05);
+}
+
+/* Transitions */
+:root {
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* Layout Dimensions */
+:root {
+  --header-height: 64px;
+  --sidebar-width: 272px;
+  --sidebar-icon-width: 70px;
+  --sidebar-panel-width: 202px;
+  --sidebar-collapsed-width: 70px;
+  --footer-height: 56px;
+}
+
+/*--------------------------------------------------------------
+# Global Colors - Light Mode
+--------------------------------------------------------------*/
+:root {
+  /* Core palette */
+  --background-color: #ffffff;
+  --default-color: #2d3748;
+  --heading-color: #1a202c;
+  --accent-color: #e07826;
+  --surface-color: #ffffff;
+  --contrast-color: #ffffff;
+
+  /* Extended text colors */
+  --muted-color: #718096;
+  --light-color: #a0aec0;
+
+  /* Borders */
+  --border-color: #e2e8f0;
+  --border-color-light: #edf2f7;
+  --border-color-dark: #cbd5e0;
+
+  /* Status colors */
+  --success-color: #0a7c3e;
+  --success-color-light: #d1f5de;
+  --warning-color: #e8a317;
+  --warning-color-light: #fef9c3;
+  --danger-color: #e53e3e;
+  --danger-color-light: #fee2e2;
+  --info-color: #0891b2;
+  --info-color-light: #cffafe;
+
+  /* Navigation colors */
+  --nav-color: var(--default-color);
+  --nav-hover-color: var(--accent-color);
+  --nav-mobile-background-color: var(--surface-color);
+  --nav-dropdown-background-color: var(--surface-color);
+  --nav-dropdown-color: var(--default-color);
+  --nav-dropdown-hover-color: var(--accent-color);
+
+  /* Header */
+  --header-bg: #ffffff;
+  --header-shadow: none;
+  --header-border: var(--border-color);
+
+  /* Sidebar */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: var(--border-color);
+  --sidebar-color: #4a5568;
+  --sidebar-muted-color: #a0aec0;
+  --sidebar-hover-bg: #f7fafc;
+  --sidebar-active-bg: color-mix(in srgb, var(--accent-color), transparent 90%);
+  --sidebar-active-color: var(--accent-color);
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-shadow: var(--shadow-sm);
+  --card-border: var(--border-color);
+
+  /* Tables */
+  --table-header-bg: #f7fafc;
+  --table-hover-bg: #f7fafc;
+  --table-stripe-bg: #fafbfc;
+
+  /* Forms */
+  --input-bg: #ffffff;
+  --input-border: var(--border-color);
+  --input-focus-border: var(--accent-color);
+  --input-focus-ring: rgb(224 120 38 / 0.2);
+}
+
+/*--------------------------------------------------------------
+# Dark Mode Palette
+--------------------------------------------------------------*/
+[data-theme="dark"] {
+  /* Core palette - warm charcoal tones */
+  --background-color: #161618;
+  --default-color: #d4d4d8;
+  --heading-color: #f0f0f2;
+  --accent-color: #f09248;
+  --surface-color: #232327;
+  --contrast-color: #ffffff;
+
+  /* Extended text colors */
+  --muted-color: #8e8e96;
+  --light-color: #5a5a63;
+
+  /* Borders */
+  --border-color: #2e2e34;
+  --border-color-light: #222226;
+  --border-color-dark: #404048;
+
+  /* Status colors (adjusted for dark mode) */
+  --success-color: #34d37a;
+  --success-color-light: rgba(52, 211, 122, 0.12);
+  --warning-color: #fbbf24;
+  --warning-color-light: rgba(251, 191, 36, 0.12);
+  --danger-color: #f87171;
+  --danger-color-light: rgba(248, 113, 113, 0.12);
+  --info-color: #22d3ee;
+  --info-color-light: rgba(34, 211, 238, 0.12);
+
+  /* Navigation colors */
+  --nav-color: var(--default-color);
+  --nav-hover-color: var(--accent-color);
+  --nav-mobile-background-color: var(--surface-color);
+  --nav-dropdown-background-color: var(--surface-color);
+  --nav-dropdown-color: var(--default-color);
+  --nav-dropdown-hover-color: var(--accent-color);
+
+  /* Header */
+  --header-bg: #1c1c20;
+  --header-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --header-border: var(--border-color);
+
+  /* Sidebar */
+  --sidebar-bg: #1c1c20;
+  --sidebar-border: var(--border-color);
+  --sidebar-color: #b8b8c0;
+  --sidebar-muted-color: #6b6b74;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg: color-mix(in srgb, var(--accent-color), transparent 82%);
+  --sidebar-active-color: var(--accent-color);
+
+  /* Cards */
+  --card-bg: #232327;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --card-border: var(--border-color);
+
+  /* Tables */
+  --table-header-bg: #1a1a1e;
+  --table-hover-bg: #2a2a30;
+  --table-stripe-bg: #1e1e22;
+
+  /* Forms */
+  --input-bg: #1a1a1e;
+  --input-border: var(--border-color);
+  --input-focus-border: var(--accent-color);
+  --input-focus-ring: rgb(240 146 72 / 0.2);
+
+  /* Bootstrap overrides */
+  --bs-body-color: var(--default-color);
+  --bs-body-bg: var(--background-color);
+}
+
+/*--------------------------------------------------------------
+# Color Utility Classes
+# Override Bootstrap's color utilities with CSS custom properties
+# for proper dark mode support
+--------------------------------------------------------------*/
+
+/* Text Colors */
+.text-primary { color: var(--accent-color) !important; }
+.text-secondary { color: var(--muted-color) !important; }
+.text-success { color: var(--success-color) !important; }
+.text-warning { color: var(--warning-color) !important; }
+.text-danger { color: var(--danger-color) !important; }
+.text-info { color: var(--info-color) !important; }
+.text-muted { color: var(--muted-color) !important; }
+.text-body { color: var(--default-color) !important; }
+
+/* Background Colors */
+.bg-primary { background-color: var(--accent-color) !important; }
+.bg-success { background-color: var(--success-color) !important; }
+.bg-warning { background-color: var(--warning-color) !important; }
+.bg-danger { background-color: var(--danger-color) !important; }
+.bg-info { background-color: var(--info-color) !important; }
+.bg-light { background-color: var(--background-color) !important; }
+.bg-body { background-color: var(--background-color) !important; }
+.bg-surface { background-color: var(--surface-color) !important; }
+
+/* Soft/Light Background Colors */
+.bg-primary-light { background-color: color-mix(in srgb, var(--accent-color), transparent 90%) !important; }
+.bg-success-light { background-color: var(--success-color-light) !important; }
+.bg-warning-light { background-color: var(--warning-color-light) !important; }
+.bg-danger-light { background-color: var(--danger-color-light) !important; }
+.bg-info-light { background-color: var(--info-color-light) !important; }
+
+/* Border Colors */
+.border-primary { border-color: var(--accent-color) !important; }
+.border-success { border-color: var(--success-color) !important; }
+.border-warning { border-color: var(--warning-color) !important; }
+.border-danger { border-color: var(--danger-color) !important; }
+.border-info { border-color: var(--info-color) !important; }
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color), black 15%)) !important;
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, var(--success-color), #086332) !important;
+}
+
+.bg-gradient-warning {
+  background: linear-gradient(135deg, var(--warning-color), #d97706) !important;
+}
+
+.bg-gradient-danger {
+  background: linear-gradient(135deg, var(--danger-color), #dc2626) !important;
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, var(--info-color), #0891b2) !important;
+}
+
+/* Icon Colors */
+.icon-primary { color: var(--accent-color); }
+.icon-success { color: var(--success-color); }
+.icon-warning { color: var(--warning-color); }
+.icon-danger { color: var(--danger-color); }
+.icon-info { color: var(--info-color); }
+.icon-muted { color: var(--muted-color); }

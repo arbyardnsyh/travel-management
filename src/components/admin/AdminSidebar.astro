@@ -1,0 +1,150 @@
+---
+import type { UserProfile } from '@/lib/database.types';
+import { publicStorageUrl } from '@/utils/storage';
+
+export interface Props {
+  user: UserProfile | null;
+}
+
+const { user } = Astro.props;
+const path = Astro.url.pathname;
+const isActive = (href: string) => (path === href ? 'active' : '');
+const isGroupOpen = (prefix: string) => path.startsWith(prefix);
+// BUG FIX (Batch 3A-8) — same issue as AdminHeader.astro: avatar_url is a
+// storage path, not a full URL.
+const avatarSrc = user?.avatar_url ? publicStorageUrl(Astro.locals.supabase, user.avatar_url) : '/assets-admin/img/profile-img.webp';
+---
+
+<aside class="sidebar">
+  <!-- Icon Strip (kept for visual parity with PowerAdmin, single entry point) -->
+  <div class="sidebar-strip">
+    <div class="sidebar-strip-logo">
+      <a href="/admin/dashboard">
+        <img src="/assets-admin/img/logo.webp" alt="PowerAdmin" />
+      </a>
+    </div>
+
+    <nav class="sidebar-strip-nav">
+      <ul class="strip-menu">
+        <li>
+          <button class="strip-item active" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Menu">
+            <i class="ph ph-squares-four"></i>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-strip-bottom">
+      <a
+        href={`/admin/profile`}
+        class="sidebar-strip-avatar"
+        data-bs-toggle="tooltip"
+        data-bs-placement="right"
+        data-bs-title="Profile"
+      >
+        <img src={avatarSrc} alt="User" />
+      </a>
+    </div>
+  </div>
+
+  <!-- Nav Panel -->
+  <div class="sidebar-panel">
+    <div class="sidebar-panel-section active" data-section="menu">
+      <div class="sidebar-panel-header">
+        <h6>Travel Management</h6>
+        <button class="sidebar-panel-close"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <ul class="panel-nav">
+        <li>
+          <a class={`panel-link ${isActive('/admin/dashboard')}`} href="/admin/dashboard">
+            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+          </a>
+        </li>
+
+        <li class={`panel-nav-group ${isGroupOpen('/admin/destinations') || isGroupOpen('/admin/tours') || isGroupOpen('/admin/gallery') || isGroupOpen('/admin/faq') ? 'open' : ''}`}>
+          <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+            <i class="bi bi-box-seam me-2"></i> Master Data
+            <i class="bi bi-chevron-down panel-arrow"></i>
+          </a>
+          <ul class="panel-subnav">
+            <li><a class={`panel-link ${isActive('/admin/destinations')}`} href="/admin/destinations">Destinations</a></li>
+            <li><a class={`panel-link ${isActive('/admin/tours')}`} href="/admin/tours">Tours</a></li>
+            <li><a class={`panel-link ${isActive('/admin/gallery')}`} href="/admin/gallery">Gallery</a></li>
+            <li><a class={`panel-link ${isActive('/admin/faq')}`} href="/admin/faq">FAQ</a></li>
+          </ul>
+        </li>
+
+        <!-- New "Interaction" group (Batch 3A-11): groups Bookings + Testimonials
+             (moved out of Master Data / their old standalone spot) + the new
+             Contact Messages module, since all three are messages/records that
+             come in from site visitors rather than admin-authored content. -->
+        <li class={`panel-nav-group ${isGroupOpen('/admin/bookings') || isGroupOpen('/admin/testimonials') || isGroupOpen('/admin/contacts') ? 'open' : ''}`}>
+          <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+            <i class="bi bi-chat-left-text me-2"></i> Interaction
+            <i class="bi bi-chevron-down panel-arrow"></i>
+          </a>
+          <ul class="panel-subnav">
+            <li><a class={`panel-link ${isActive('/admin/bookings')}`} href="/admin/bookings">Bookings</a></li>
+            <li><a class={`panel-link ${isActive('/admin/testimonials')}`} href="/admin/testimonials">Testimonials</a></li>
+            <li><a class={`panel-link ${isActive('/admin/contacts')}`} href="/admin/contacts">Contact Messages</a></li>
+          </ul>
+        </li>
+
+        <li class={`panel-nav-group ${isGroupOpen('/admin/blogs') ? 'open' : ''}`}>
+          <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+            <i class="bi bi-journal-text me-2"></i> Blog
+            <i class="bi bi-chevron-down panel-arrow"></i>
+          </a>
+          <ul class="panel-subnav">
+            <li><a class={`panel-link ${isActive('/admin/blogs/categories')}`} href="/admin/blogs/categories">Categories</a></li>
+            <li><a class={`panel-link ${isActive('/admin/blogs')}`} href="/admin/blogs">Articles</a></li>
+          </ul>
+        </li>
+
+        <li class={`panel-nav-group ${isGroupOpen('/admin/settings') ? 'open' : ''}`}>
+          <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+            <i class="bi bi-globe me-2"></i> Website
+            <i class="bi bi-chevron-down panel-arrow"></i>
+          </a>
+          <ul class="panel-subnav">
+            <li><a class={`panel-link ${isActive('/admin/settings')}`} href="/admin/settings">Settings</a></li>
+            <li><a class={`panel-link ${isActive('/admin/settings/about')}`} href="/admin/settings/about">About</a></li>
+            <li><a class={`panel-link ${isActive('/admin/settings/privacy')}`} href="/admin/settings/privacy">Privacy</a></li>
+            <li><a class={`panel-link ${isActive('/admin/settings/terms')}`} href="/admin/settings/terms">Terms</a></li>
+          </ul>
+        </li>
+
+        {user?.role === 'admin' && (
+          <li>
+            <a class={`panel-link ${isActive('/admin/users')}`} href="/admin/users">
+              <i class="bi bi-people me-2"></i> Users
+            </a>
+          </li>
+        )}
+
+        <li>
+          <a class={`panel-link ${isActive('/admin/activity-logs')}`} href="/admin/activity-logs">
+            <i class="bi bi-clock-history me-2"></i> Activity Logs
+          </a>
+        </li>
+
+        <li>
+          <a class={`panel-link ${isActive('/admin/profile')}`} href="/admin/profile">
+            <i class="bi bi-person-circle me-2"></i> Profile
+          </a>
+        </li>
+
+        <li>
+          <form action="/api/auth/logout" method="post">
+            <button type="submit" class="panel-link w-100 text-start border-0 bg-transparent">
+              <i class="bi bi-box-arrow-right me-2"></i> Logout
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</aside>
+
+<div class="sidebar-overlay"></div>

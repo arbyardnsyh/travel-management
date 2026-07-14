@@ -1,0 +1,143 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listDestinations } from '@/services';
+import { formatCurrency, formatDate, publicStorageUrl } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import type { ContentStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as ContentStatus | null) ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: destinations, count, totalPages } = await listDestinations(supabase, {
+  q: q || undefined,
+  status,
+  page,
+  perPage,
+});
+
+// Client-independent sort — Supabase query in the service always orders by
+// created_at desc; apply a light in-memory re-sort here for the few
+// sortable columns exposed in the table header so DataTable's sort links
+// stay generic without needing a bespoke query per column.
+const sorted = [...destinations].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'name') cmp = a.name.localeCompare(b.name);
+  else if (sort === 'price') cmp = a.price - b.price;
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+---
+
+<AdminLayout title="Destinations">
+  <PageHeader title="Destinations" crumbs={[{ label: 'Master Data' }, { label: 'Destinations' }]}>
+    <a href="/admin/destinations/trash" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+    <a href="/admin/destinations/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah Destinasi
+    </a>
+  </PageHeader>
+
+  <DataTable
+    columns={[
+      { key: 'name', label: 'Destinasi', sortable: true },
+      { key: 'location', label: 'Lokasi' },
+      { key: 'price', label: 'Harga', sortable: true },
+      { key: 'rating', label: 'Rating' },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/destinations"
+    searchParams={searchParams}
+    searchPlaceholder="Cari nama destinasi..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="destinasi"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-signpost-2"
+    emptyTitle={q ? 'Destinasi tidak ditemukan' : 'Belum ada destinasi'}
+    emptyText={q ? `Tidak ada destinasi yang cocok dengan "${q}".` : 'Mulai dengan menambahkan destinasi pertama Anda.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={`/admin/destinations?${new URLSearchParams({ ...(q ? { q } : {}) }).toString()}`}>Semua Status</a></li>
+          {CONTENT_STATUSES.map((s) => (
+            <li>
+              <a class="dropdown-item" href={`/admin/destinations?${new URLSearchParams({ ...(q ? { q } : {}), status: s }).toString()}`}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((destination) => (
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {destination.thumbnail ? (
+              <img
+                src={publicStorageUrl(supabase, destination.thumbnail)}
+                alt={destination.name}
+                width="44"
+                height="44"
+                class="rounded-2"
+                style="object-fit:cover;"
+              />
+            ) : (
+              <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                <i class="bi bi-image text-secondary"></i>
+              </div>
+            )}
+            <div>
+              <div class="fw-semibold">{destination.name}</div>
+              <div class="text-muted small">{destination.slug}</div>
+            </div>
+            {destination.is_featured && <i class="bi bi-star-fill text-warning ms-1" title="Unggulan"></i>}
+          </div>
+        </td>
+        <td>{destination.location}</td>
+        <td>{formatCurrency(destination.price)}</td>
+        <td><i class="bi bi-star-fill text-warning me-1"></i>{Number(destination.rating ?? 0).toFixed(1)}</td>
+        <td><StatusBadge status={destination.status} /></td>
+        <td class="users-meta">{formatDate(destination.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/destinations/${destination.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/destinations/${destination.id}', label: '${destination.name.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

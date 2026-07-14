@@ -1,0 +1,149 @@
+---
+// Batch 3A-3 — Gallery list (mirrors /admin/tours/index.astro pattern).
+// Gallery items have no slug/status column — just title, image, category —
+// so the "Aktif" StatusBadge here is derived from deleted_at, not a DB enum.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listGallery, listGalleryCategories } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const category = searchParams.get('category') ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const [{ data: items, count, totalPages }, categories] = await Promise.all([
+  listGallery(supabase, { q: q || undefined, category, page, perPage }),
+  listGalleryCategories(supabase),
+]);
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/tours (service always orders by
+// created_at desc under the hood).
+const sorted = [...items].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'title') cmp = a.title.localeCompare(b.title);
+  else if (sort === 'category') cmp = (a.category ?? '').localeCompare(b.category ?? '');
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+function filterHref(next: Partial<{ category: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextCategory = 'category' in next ? next.category : category;
+  if (nextCategory) params.set('category', nextCategory);
+  return `/admin/gallery?${params.toString()}`;
+}
+---
+
+<AdminLayout title="Gallery">
+  <PageHeader title="Gallery" crumbs={[{ label: 'Konten' }, { label: 'Gallery' }]}>
+    <a href="/admin/gallery/trash" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+    <a href="/admin/gallery/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah Foto
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'title', label: 'Foto', sortable: true },
+      { key: 'category', label: 'Kategori', sortable: true },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/gallery"
+    searchParams={searchParams}
+    searchPlaceholder="Cari judul foto..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="foto"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-images"
+    emptyTitle={q ? 'Foto tidak ditemukan' : 'Belum ada foto galeri'}
+    emptyText={q ? `Tidak ada foto yang cocok dengan "${q}".` : 'Mulai dengan menambahkan foto pertama Anda.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-tag me-1"></i> {category || 'Semua Kategori'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="max-height:320px;overflow-y:auto;">
+          <li><a class="dropdown-item" href={filterHref({ category: '' })}>Semua Kategori</a></li>
+          {categories.map((c) => (
+            <li><a class="dropdown-item" href={filterHref({ category: c })}>{c}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((item) => (
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {item.image_url ? (
+              <img
+                src={publicStorageUrl(supabase, item.image_url)}
+                alt={item.title}
+                width="44"
+                height="44"
+                class="rounded-2"
+                style="object-fit:cover;"
+              />
+            ) : (
+              <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                <i class="bi bi-image text-secondary"></i>
+              </div>
+            )}
+            <div class="fw-semibold">{item.title}</div>
+          </div>
+        </td>
+        <td>{item.category ?? <span class="text-muted">—</span>}</td>
+        <td><StatusBadge status="active" label="Aktif" /></td>
+        <td class="users-meta">{formatDate(item.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/gallery/${item.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/gallery/${item.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/gallery/${item.id}', label: '${item.title.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

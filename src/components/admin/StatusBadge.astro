@@ -1,0 +1,50 @@
+---
+// Reusable status badge (Fondasi UI — Batch 3A).
+// Renders a Bootstrap "subtle" badge (bg-*-subtle / text-*) — the same
+// pattern already used ad-hoc in src/pages/admin/dashboard.astro — so every
+// list/detail page across all admin modules gets a single source of truth
+// for status colors instead of re-declaring the color map per page.
+//
+// Covers every status enum in the schema:
+//   content_status:      draft | published | archived
+//   booking_status:       pending | confirmed | completed | cancelled
+//   moderation_status:    pending | approved | rejected
+//   misc:                 active | inactive | read | unread
+
+type StatusBadgeStatus =
+  'draft' | 'published' | 'archived' |
+  'pending' | 'confirmed' | 'completed' | 'cancelled' |
+  'approved' | 'rejected' |
+  'active' | 'inactive' |
+  'read' | 'unread';
+
+export interface Props {
+  status: StatusBadgeStatus | string;
+  /** Optional override label (defaults to a capitalized version of `status`). */
+  label?: string;
+  class?: string;
+}
+
+const { status, label, class: className = '' } = Astro.props;
+
+const COLOR_MAP: Record<string, string> = {
+  draft: 'secondary',
+  published: 'success',
+  archived: 'dark',
+  pending: 'warning',
+  confirmed: 'info',
+  completed: 'success',
+  cancelled: 'danger',
+  approved: 'success',
+  rejected: 'danger',
+  active: 'success',
+  inactive: 'secondary',
+  read: 'secondary',
+  unread: 'primary',
+};
+
+const color = COLOR_MAP[status] ?? 'secondary';
+const text = label ?? (status.charAt(0).toUpperCase() + status.slice(1));
+---
+
+<span class={`badge bg-${color}-subtle text-${color} ${className}`}>{text}</span>

@@ -1,0 +1,161 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getTourBySlug, listTours } from '@/services';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const { slug } = Astro.params;
+const supabase = Astro.locals.supabase;
+
+const tour = slug ? await getTourBySlug(supabase, slug) : null;
+
+if (!tour || tour.status !== 'published' || tour.deleted_at) {
+  return Astro.redirect('/tours');
+}
+
+const { data: relatedTours } = tour.destination_id
+  ? await listTours(supabase, { status: 'published', destinationId: tour.destination_id, perPage: 4 })
+  : { data: [] };
+const related = relatedTours.filter((t) => t.id !== tour.id).slice(0, 3);
+---
+
+<PublicLayout title={tour.title} description={tour.description?.slice(0, 160) || `Paket tour ${tour.title}`} image={publicStorageUrl(supabase, tour.thumbnail) || undefined}>
+  <section id="travel-tour-details" class="travel-tour-details section">
+    <div class="container">
+      <!-- Hero Banner -->
+      <div class="tour-hero">
+        <div class="hero-image-wrapper">
+          <img src={publicStorageUrl(supabase, tour.thumbnail) || '/assets-user/img/travel/showcase-7.webp'} alt={tour.title} class="hero-image" />
+          <div class="hero-overlay">
+            <div class="hero-content">
+              {tour.destination && <span class="tour-type">{tour.destination.location}</span>}
+              <h1>{tour.title}</h1>
+              {tour.description && <p class="hero-subtitle">{tour.description.slice(0, 140)}{tour.description.length > 140 ? '…' : ''}</p>}
+              <div class="hero-stats">
+                {tour.duration && <span class="stat-item"><i class="bi bi-clock"></i>{tour.duration}</span>}
+                {tour.destination && <span class="stat-item"><i class="bi bi-geo-alt"></i>{tour.destination.name}</span>}
+                {tour.quota != null && <span class="stat-item"><i class="bi bi-people"></i>Max {tour.quota} Guests</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tour Essence -->
+      <div class="tour-essence">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <div class="essence-content">
+              <h2>About This Tour</h2>
+              {tour.description
+                ? tour.description.split('\n').filter(Boolean).map((p) => <p>{p}</p>)
+                : <p>Detail lengkap perjalanan ini akan segera hadir.</p>}
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="pricing-card">
+              <div class="price-header">
+                <span class="price-label">From</span>
+                <span class="price-amount">{formatCurrency(tour.price)}</span>
+              </div>
+              <p class="price-description">per orang</p>
+              <a href={`/booking?tour=${tour.slug}`} class="btn-reserve">Reserve Your Journey</a>
+              <div class="booking-notes">
+                <span><i class="bi bi-shield-check"></i> Konfirmasi cepat setelah booking</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journey Timeline -->
+      <div class="journey-timeline">
+        <h2>Your Journey Unfolds</h2>
+        <div class="timeline-wrapper">
+          <div class="timeline-item">
+            <div class="timeline-marker"><span class="day-number">01</span></div>
+            <div class="timeline-content">
+              <div class="day-header"><h3>Arrival &amp; Welcome</h3>{tour.destination && <span class="location">{tour.destination.name}</span>}</div>
+              <p>Kedatangan dan transfer menuju akomodasi, dilanjutkan dengan pengarahan singkat mengenai rencana perjalanan.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker"><span class="day-number">02</span></div>
+            <div class="timeline-content">
+              <div class="day-header"><h3>Eksplorasi Utama</h3>{tour.destination && <span class="location">{tour.destination.name}</span>}</div>
+              <p>Menjelajahi highlight utama destinasi bersama pemandu lokal berpengalaman.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker"><span class="day-number">03</span></div>
+            <div class="timeline-content">
+              <div class="day-header"><h3>Waktu Bebas &amp; Kepulangan</h3>{tour.destination && <span class="location">{tour.destination.name}</span>}</div>
+              <p>Waktu bebas untuk eksplorasi mandiri sebelum transfer kepulangan.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inclusions Overview -->
+      <div class="inclusions-overview">
+        <div class="row">
+          <div class="col-lg-6">
+            <div class="included-section">
+              <h3>Your Journey Includes</h3>
+              <div class="inclusion-list">
+                <div class="inclusion-item"><i class="bi bi-check-circle-fill"></i><span>Akomodasi selama perjalanan</span></div>
+                <div class="inclusion-item"><i class="bi bi-check-circle-fill"></i><span>Pemandu lokal berpengalaman</span></div>
+                <div class="inclusion-item"><i class="bi bi-check-circle-fill"></i><span>Transportasi selama tour</span></div>
+                <div class="inclusion-item"><i class="bi bi-check-circle-fill"></i><span>Tiket masuk destinasi utama</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="not-included-section">
+              <h3>Additional Considerations</h3>
+              <div class="exclusion-list">
+                <div class="exclusion-item"><i class="bi bi-x-circle"></i><span>Tiket transportasi menuju titik keberangkatan</span></div>
+                <div class="exclusion-item"><i class="bi bi-x-circle"></i><span>Asuransi perjalanan (disarankan)</span></div>
+                <div class="exclusion-item"><i class="bi bi-x-circle"></i><span>Pengeluaran pribadi</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {related.length > 0 && (
+        <div class="available-tours mt-5">
+          <div class="section-header">
+            <h2>Related Tours</h2>
+            <p>Tour lain di destinasi yang sama</p>
+          </div>
+          <div class="row gy-4">
+            {related.map((t) => (
+              <div class="col-lg-4 col-md-6">
+                <div class="tour-card">
+                  <div class="tour-image">
+                    <img src={publicStorageUrl(supabase, t.thumbnail) || '/assets-user/img/travel/tour-8.webp'} alt={t.title} class="img-fluid" />
+                    {t.duration && <div class="tour-duration"><span>{t.duration}</span></div>}
+                  </div>
+                  <div class="tour-content">
+                    <h4>{t.title}</h4>
+                    <div class="tour-meta">
+                      <span class="tour-price">{formatCurrency(t.price)}</span>
+                    </div>
+                    <a href={`/tours/${t.slug}`} class="btn-tour">View Details <i class="bi bi-arrow-right"></i></a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div class="row justify-content-center mt-5">
+        <div class="col-lg-6 text-center">
+          <a href="/tours" class="btn-explore"><span>Back to All Tours</span> <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

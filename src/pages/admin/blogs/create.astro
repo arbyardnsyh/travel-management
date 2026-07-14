@@ -1,0 +1,104 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import RichTextEditor from '@/components/admin/RichTextEditor.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import { listBlogCategories } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+
+const categories = await listBlogCategories(supabase);
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+const categoryOptions = [{ value: '', label: '— Tanpa Kategori —' }, ...categories.map((c) => ({ value: c.id, label: c.name }))];
+---
+
+<AdminLayout title="Tambah Artikel Blog">
+  <PageHeader title="Tambah Artikel Blog" crumbs={[{ label: 'Blog' }, { label: 'Articles', href: '/admin/blogs' }, { label: 'Tambah' }]}>
+    <a href="/admin/blogs" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action="/api/admin/blogs" id="blogForm">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Artikel</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <FormField label="Judul Artikel" name="title" required error={fieldError('title')} />
+              </div>
+              <div class="col-md-4">
+                <FormField label="Slug (opsional)" name="slug" help="Kosongkan untuk membuat otomatis dari judul." error={fieldError('slug')} />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Kategori" name="category_id" as="select" options={categoryOptions} error={fieldError('category_id')} />
+              </div>
+              <div class="col-md-6">
+                <FormField label="Penulis" name="author" placeholder="Nama penulis" value={user?.name ?? ''} error={fieldError('author')} />
+              </div>
+            </div>
+            <RichTextEditor name="content" label="Konten" error={fieldError('content')} />
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value="draft" error={fieldError('status')} />
+            <FormField label="Tanggal Terbit (opsional)" name="published_at" type="datetime-local" help="Kosongkan jika belum dijadwalkan." error={fieldError('published_at')} />
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Thumbnail</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="thumbnail" label="Thumbnail" folder="blog" error={fieldError('thumbnail')} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Artikel
+        </button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('blogForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

@@ -1,0 +1,40 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = 'TravelTime - Discover unforgettable destinations and book your next adventure.',
+  image = '/assets-user/img/travel/showcase-11.webp',
+  canonical,
+  noindex = false,
+} = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || Astro.site?.toString() || 'http://localhost:4321';
+const canonicalUrl = canonical || new URL(Astro.url.pathname, siteUrl).toString();
+const imageUrl = image.startsWith('http') ? image : new URL(image, siteUrl).toString();
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<!-- OpenGraph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:site_name" content={import.meta.env.PUBLIC_SITE_NAME || 'TravelTime'} />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />

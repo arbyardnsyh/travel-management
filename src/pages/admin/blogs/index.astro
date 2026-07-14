@@ -1,0 +1,176 @@
+---
+// Batch 3A-6 — Blog Articles list. Mirrors /admin/destinations/index.astro's
+// search+sort+pagination shell, plus a status filter (like /admin/faq) and
+// a category filter backed by blog_categories.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listBlogs, listBlogCategories } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import type { ContentStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as ContentStatus | null) ?? undefined;
+const categoryId = searchParams.get('category') ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const [{ data: blogs, count, totalPages }, categories] = await Promise.all([
+  listBlogs(supabase, { q: q || undefined, status, categoryId, page, perPage }),
+  listBlogCategories(supabase),
+]);
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header — the service always orders by created_at desc under the hood,
+// same approach as /admin/destinations.
+const sorted = [...blogs].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'title') cmp = a.title.localeCompare(b.title);
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else if (sort === 'published_at') cmp = new Date(a.published_at ?? 0).getTime() - new Date(b.published_at ?? 0).getTime();
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function filterHref(next: Partial<{ status: string; category: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : status;
+  if (nextStatus) params.set('status', nextStatus);
+  const nextCategory = 'category' in next ? next.category : categoryId;
+  if (nextCategory) params.set('category', nextCategory);
+  return `/admin/blogs?${params.toString()}`;
+}
+
+const activeCategory = categories.find((c) => c.id === categoryId);
+---
+
+<AdminLayout title="Blog Articles">
+  <PageHeader title="Blog Articles" crumbs={[{ label: 'Blog' }, { label: 'Articles' }]}>
+    <a href="/admin/blogs/trash" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+    <a href="/admin/blogs/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah Artikel
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'title', label: 'Judul', sortable: true },
+      { key: 'category', label: 'Kategori' },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'published_at', label: 'Terbit', sortable: true },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/blogs"
+    searchParams={searchParams}
+    searchPlaceholder="Cari judul artikel..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="artikel"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-journal-text"
+    emptyTitle={q ? 'Artikel tidak ditemukan' : 'Belum ada artikel'}
+    emptyText={q ? `Tidak ada artikel yang cocok dengan "${q}".` : 'Mulai dengan menambahkan artikel blog pertama Anda.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? statusLabel(status) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          {CONTENT_STATUSES.map((s) => (
+            <li><a class="dropdown-item" href={filterHref({ status: s })}>{statusLabel(s)}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-tags me-1"></i> {activeCategory ? activeCategory.name : 'Semua Kategori'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ category: '' })}>Semua Kategori</a></li>
+          {categories.map((c) => (
+            <li><a class="dropdown-item" href={filterHref({ category: c.id })}>{c.name}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((blog) => (
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {blog.thumbnail ? (
+              <img
+                src={publicStorageUrl(supabase, blog.thumbnail)}
+                alt={blog.title}
+                width="44"
+                height="44"
+                class="rounded-2"
+                style="object-fit:cover;"
+              />
+            ) : (
+              <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                <i class="bi bi-image text-secondary"></i>
+              </div>
+            )}
+            <div>
+              <div class="fw-semibold">{blog.title}</div>
+              <div class="text-muted small">{blog.slug}</div>
+            </div>
+          </div>
+        </td>
+        <td>{blog.category?.name ?? <span class="text-muted">—</span>}</td>
+        <td><StatusBadge status={blog.status} label={statusLabel(blog.status)} /></td>
+        <td class="users-meta">{blog.published_at ? formatDate(blog.published_at) : <span class="text-muted">—</span>}</td>
+        <td class="users-meta">{formatDate(blog.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/blogs/${blog.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/blogs/${blog.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/blogs/${blog.id}', label: '${blog.title.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

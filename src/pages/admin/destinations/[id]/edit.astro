@@ -1,0 +1,276 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import { getDestinationById, listDestinationGallery, listActivityLogs } from '@/services';
+import { publicStorageUrl, formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const destination = id ? await getDestinationById(supabase, id) : null;
+if (!destination) {
+  return Astro.redirect('/admin/destinations?toast=' + encodeURIComponent('Destinasi tidak ditemukan.') + '&toastType=error');
+}
+
+const [gallery, logs] = await Promise.all([
+  listDestinationGallery(supabase, destination.id),
+  listActivityLogs(supabase, { entity: 'destinations', entityId: destination.id, perPage: 8 }),
+]);
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+---
+
+<AdminLayout title={`Edit ${destination.name}`}>
+  <PageHeader title="Edit Destinasi" crumbs={[{ label: 'Master Data' }, { label: 'Destinations', href: '/admin/destinations' }, { label: destination.name }]}>
+    <a href="/admin/destinations" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/destinations/${destination.id}`} id="destinationForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Destinasi</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <FormField label="Nama Destinasi" name="name" value={destination.name} required />
+              </div>
+              <div class="col-md-4">
+                <FormField label="Slug" name="slug" value={destination.slug} help="Kosongkan untuk mempertahankan slug saat ini." />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Lokasi" name="location" value={destination.location} required />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Harga" name="price" type="number" min={0} value={destination.price} required />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Durasi" name="duration" value={destination.duration ?? ''} placeholder="mis. 3 Hari 2 Malam" />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Rating" name="rating" type="number" min={0} max={5} step="0.1" value={destination.rating ?? 0} help="Skala 0 - 5" />
+              </div>
+            </div>
+            <FormField label="Deskripsi" name="description" as="textarea" rows={6} value={destination.description ?? ''} />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <div>
+              <h5 class="card-title mb-0">Galeri Destinasi</h5>
+              <p class="card-subtitle mb-0">Foto tambahan untuk halaman detail destinasi</p>
+            </div>
+          </div>
+          <div class="card-body">
+            {gallery.length === 0 ? (
+              <p class="text-muted small mb-3">Belum ada foto galeri.</p>
+            ) : (
+              <div class="upload-image-preview mb-3">
+                {gallery.map((photo) => (
+                  <div class="upload-image-item" style="width:100px;height:100px;">
+                    <img src={publicStorageUrl(supabase, photo.image_url)} alt={photo.caption ?? destination.name} />
+                    <button
+                      type="button"
+                      class="upload-image-remove"
+                      title="Hapus foto"
+                      onclick={`openDeleteModal({ action: '/api/admin/destinations/${destination.id}/gallery', label: 'foto ini', extra: { photo_id: '${photo.id}' } })`}
+                    >
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <ImageUploader name="new_gallery_image" label="Tambah Foto Galeri" folder="destination" help="Unggah gambar baru, lalu klik 'Tambah ke Galeri'." />
+            <div class="row g-2 align-items-end">
+              <div class="col-md-8">
+                <label class="form-label">Keterangan (opsional)</label>
+                <input type="text" class="form-control" id="galleryCaption" placeholder="Keterangan foto" />
+              </div>
+              <div class="col-md-4">
+                <!--
+                  BUG FIX (Bug 6 — "Tambah Foto Galeri" tidak berfungsi):
+                  root cause was `<form id="addGalleryForm">` (below, in the
+                  previous version) being nested INSIDE the outer
+                  `<form id="destinationForm">` above. Nested <form> elements
+                  are invalid HTML — the browser's HTML parser silently drops
+                  the inner <form> start tag when a form is already open, so
+                  `document.getElementById('addGalleryForm')` always returned
+                  null and `galleryForm?.submit()` was a silent no-op. The
+                  button now posts via fetch() directly (see script below),
+                  which needs no nested form at all — additive, no markup
+                  removed from the visible card, same visual result.
+                -->
+                <button type="button" class="btn btn-outline-primary w-100" id="addGalleryPhotoBtn" data-gallery-endpoint={`/api/admin/destinations/${destination.id}/gallery`}>
+                  <i class="bi bi-plus-lg me-1"></i> Tambah ke Galeri
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value={destination.status} />
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="is_featured"
+                name="is_featured"
+                value="true"
+                checked={destination.is_featured}
+              />
+              <label class="form-check-label" for="is_featured">Destinasi Unggulan</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="thumbnail" label="Thumbnail" folder="destination" value={destination.thumbnail} />
+            <ImageUploader name="cover_image" label="Cover Image" folder="destination" value={destination.cover_image} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/destinations/${destination.id}', label: '${destination.name.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus Destinasi
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('destinationForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+
+  // "Tambah ke Galeri" — takes the path just uploaded by the
+  // "new_gallery_image" ImageUploader hidden input and POSTs it to the
+  // gallery endpoint directly via fetch(). (Previously submitted a nested
+  // <form>, which the browser silently dropped — see the comment in the
+  // markup above for the full root-cause explanation.)
+  const addBtn = document.getElementById('addGalleryPhotoBtn') as HTMLButtonElement | null;
+  addBtn?.addEventListener('click', async () => {
+    const pathInput = document.getElementById('uploader-new_gallery_image') as HTMLInputElement | null;
+    const captionInput = document.getElementById('galleryCaption') as HTMLInputElement | null;
+    const endpoint = addBtn.dataset.galleryEndpoint;
+
+    if (!pathInput?.value) {
+      alert('Unggah gambar terlebih dahulu sebelum menambahkan ke galeri.');
+      return;
+    }
+    if (!endpoint) return;
+
+    addBtn.disabled = true;
+    const originalLabel = addBtn.innerHTML;
+    addBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menambahkan...';
+
+    const formData = new FormData();
+    formData.append('image_url', pathInput.value);
+    formData.append('caption', captionInput?.value ?? '');
+
+    try {
+      const res = await fetch(endpoint, { method: 'POST', body: formData });
+      // The API redirects (303) back to this same edit page with a toast
+      // query param on success or failure — follow it either way so the
+      // user sees the result, same as a native form submission would.
+      window.location.href = res.url || window.location.href;
+    } catch {
+      addBtn.disabled = false;
+      addBtn.innerHTML = originalLabel;
+      alert('Gagal menambahkan foto ke galeri. Periksa koneksi Anda dan coba lagi.');
+    }
+  });
+
+  // Extend the shared ConfirmDeleteModal to support an `extra` field map
+  // (used here for `photo_id` when deleting a single gallery photo).
+  const originalOpen = (window as any).openDeleteModal;
+  (window as any).openDeleteModal = (opts: { action: string; label: string; extra?: Record<string, string> }) => {
+    originalOpen(opts);
+    const modalEl = document.getElementById('confirmDeleteModal');
+    const form = modalEl?.querySelector('[data-delete-form]') as HTMLFormElement | null;
+    form?.querySelectorAll('[data-extra-field]').forEach((el) => el.remove());
+    if (form && opts.extra) {
+      for (const [key, value] of Object.entries(opts.extra)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        input.setAttribute('data-extra-field', '1');
+        form.appendChild(input);
+      }
+    }
+  };
+</script>

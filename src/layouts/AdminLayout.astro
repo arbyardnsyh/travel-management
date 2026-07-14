@@ -1,0 +1,75 @@
+---
+import AdminSidebar from '@/components/admin/AdminSidebar.astro';
+import AdminHeader from '@/components/admin/AdminHeader.astro';
+import Toast from '@/components/shared/Toast.astro';
+import type { UserProfile } from '@/lib/database.types';
+
+export interface Props {
+  title: string;
+  activePage?: string;
+}
+
+const { title } = Astro.props;
+const user = Astro.locals.user as UserProfile | null;
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} | TravelTime Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+
+    <link href="/assets-admin/img/favicon.png" rel="icon" />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Vendor CSS -->
+    <link href="/assets-admin/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/remixicon/remixicon.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/simple-datatables/style.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/quill/quill.snow.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/choices.js/choices.min.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/flatpickr/flatpickr.min.css" rel="stylesheet" />
+
+    <!-- Main CSS -->
+    <link href="/assets-admin/css/main.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <AdminHeader user={user} />
+    <AdminSidebar user={user} />
+
+    <main class="main">
+      <div class="main-content">
+        <slot />
+      </div>
+    </main>
+
+    <Toast />
+
+    <div class="sidebar-overlay"></div>
+
+    <!-- Vendor JS -->
+    <script is:inline src="/assets-admin/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script is:inline src="/assets-admin/vendor/simple-datatables/simple-datatables.js"></script>
+    <script is:inline src="/assets-admin/vendor/quill/quill.js"></script>
+    <script is:inline src="/assets-admin/vendor/choices.js/choices.min.js"></script>
+    <script is:inline src="/assets-admin/vendor/flatpickr/flatpickr.min.js"></script>
+    <script is:inline src="/assets-admin/vendor/apexcharts/apexcharts.min.js"></script>
+
+    <!-- Main JS -->
+    <script is:inline src="/assets-admin/js/main.js"></script>
+  </body>
+</html>

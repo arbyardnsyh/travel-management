@@ -1,0 +1,86 @@
+/*--------------------------------------------------------------
+# Global Sections
+--------------------------------------------------------------*/
+section,
+.section {
+  color: var(--default-color);
+  background-color: var(--background-color);
+  padding: 60px 0;
+  scroll-margin-top: 90px;
+  overflow: clip;
+}
+
+@media (max-width: 1199px) {
+
+  section,
+  .section {
+    scroll-margin-top: 66px;
+  }
+}
+
+/*--------------------------------------------------------------
+# Global Section Titles
+--------------------------------------------------------------*/
+.section-title {
+  padding-bottom: 60px;
+  position: relative;
+
+  h2 {
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0;
+    line-height: 1px;
+    margin: 0;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--default-color), transparent 50%);
+    position: relative;
+
+    &::after {
+      content: "";
+      width: 120px;
+      height: 1px;
+      display: inline-block;
+      background: var(--accent-color);
+      margin: 4px 10px;
+    }
+  }
+
+  div {
+    color: var(--heading-color);
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--heading-font);
+  }
+}
+
+@import './sections/_travel-hero.scss';
+@import './sections/_why-us.scss';
+@import './sections/_featured-destinations.scss';
+@import './sections/_featured-tours.scss';
+@import './sections/_testimonials-home.scss';
+@import './sections/_call-to-action.scss';
+@import './sections/_about.scss';
+@import './sections/_travel-destinations.scss';
+@import './sections/_travel-destination-details.scss';
+@import './sections/_travel-tours.scss';
+@import './sections/_travel-tour-details.scss';
+@import './sections/_travel-booking.scss';
+@import './sections/_gallery-slider.scss';
+@import './sections/_gallery.scss';
+@import './sections/_blog-hero.scss';
+@import './sections/_blog-posts.scss';
+@import './sections/_pagination-2.scss';
+@import './sections/_blog-details.scss';
+@import './sections/_blog-author.scss';
+@import './sections/_blog-comments.scss';
+@import './sections/_blog-comment-form.scss';
+@import './sections/_slider-testimonials.scss';
+@import './sections/_testimonials.scss';
+@import './sections/_faq.scss';
+@import './sections/_contact.scss';
+@import './sections/_terms-of-service.scss';
+@import './sections/_privacy.scss';
+@import './sections/_error-404.scss';
+@import './sections/_starter-section.scss';

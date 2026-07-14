@@ -1,0 +1,61 @@
+/* =============================================================================
+   Additive Bug Fix — Navbar consistency across all pages (Batch 3A-11).
+
+   ROOT CAUSE (audited against PublicLayout.astro, Header.astro, main.js,
+   main.css before making this change):
+   - Header.astro renders the SAME markup on every page: <header id="header"
+     class="header ... fixed-top">. There is nothing page-specific here.
+   - main.js's toggleScrolled() adds/removes `.scrolled` on <body> purely
+     based on window.scrollY > 100 — it runs identically on every page, is
+     NOT limited to Home.
+   - main.css's `.header` is transparent by default and only becomes solid
+     via `.scrolled .header` — also not page-specific.
+   So the *native* template behavior already matches what this batch wants
+   (transparent -> solid on scroll, same on every page). The only thing that
+   made non-Home pages look different was a PREVIOUS additive fix in this
+   very file ("Bug 5"), which forced `--background-color` solid on
+   `body:not(.index-page) .header` regardless of scroll position. That old
+   rule is the root cause of "navbar langsung hitam sejak halaman dibuka"
+   reported in this batch, so it is removed.
+
+   READABILITY: removing that rule brings back the original problem the old
+   fix was (over-broadly) trying to solve — a few inner pages place a plain
+   light-background `.section` (padding: 60px 0, light --background-color)
+   directly under the fixed transparent header, before reaching their own
+   dark hero/page-title image, which briefly made the white nav text hard to
+   read pre-scroll. Pages that already render <Breadcrumb> (a dark
+   `.page-title` band — About/Contact/FAQ/Gallery/Testimonials/Booking/
+   Destinations & Tours index/Blog index) don't have this problem — their
+   dark band is the very first thing under the header, exactly like Home's
+   hero. Destination/Tour/Blog detail pages, Privacy, and Terms are the ones
+   without a dark element flush against the top.
+
+   FIX: a small, scoped dark-to-transparent gradient overlay behind the
+   header (z-index just below `.header`'s 997), only on non-Home pages,
+   confined to the header's height. This is the "Page Header punya overlay
+   lebih gelap" approach explicitly allowed by the brief — it doesn't touch
+   `_header.scss`/main.css, doesn't change layout/fonts/colors/animations,
+   and works whether the first section is plain (Privacy/Terms) or already
+   has its own dark hero (the overlay just adds a touch of extra contrast
+   there, same as it always looked). It fades out once `.scrolled` is
+   applied, since the header itself is solid by then and the overlay is no
+   longer needed.
+   ============================================================================= */
+body:not(.index-page) main {
+  position: relative;
+}
+
+body:not(.index-page) main::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 220px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+  pointer-events: none;
+  z-index: 996;
+  transition: opacity 0.5s;
+}
+
+body.scrolled:not(.index-page) main::before {
+  opacity: 0;
+}

@@ -1,0 +1,177 @@
+---
+// Batch 3A-5 — Booking detail (read-only view + status change + notes panel
+// + activity log). Mirrors /admin/testimonials/[id]/index.astro — same
+// folder/URL convention as [id]/edit.astro.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getBookingById, listActivityLogs } from '@/services';
+import { formatDate, formatCurrency } from '@/lib/helpers';
+import { BOOKING_STATUSES } from '@/lib/constants';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const booking = id ? await getBookingById(supabase, id) : null;
+if (!booking) {
+  return Astro.redirect('/admin/bookings?toast=' + encodeURIComponent('Booking tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'bookings', entityId: booking.id, perPage: 10 });
+const statusLabel = booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Detail Booking">
+  <PageHeader title="Detail Booking" crumbs={[{ label: 'Transaksi' }, { label: 'Booking List', href: '/admin/bookings' }, { label: booking.customer_name }]}>
+    <a href={`/admin/bookings/${booking.id}/edit`} class="btn btn-primary me-2">
+      <i class="bi bi-pencil me-1"></i> Edit
+    </a>
+    <a href="/admin/bookings" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">{booking.customer_name}</h5>
+          <StatusBadge status={booking.status} label={statusLabel} />
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Email</div>
+            <div class="col-md-8">{booking.customer_email}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Telepon</div>
+            <div class="col-md-8">{booking.phone}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Jumlah Peserta</div>
+            <div class="col-md-8">{booking.participants} orang</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Tanggal Perjalanan</div>
+            <div class="col-md-8">{formatDate(booking.travel_date)}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Destinasi</div>
+            <div class="col-md-8">{booking.tour?.destination?.name ?? <span class="text-muted">Tidak diketahui</span>}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Tour</div>
+            <div class="col-md-8">{booking.tour?.title ?? <span class="text-muted">Tidak diketahui</span>}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Harga</div>
+            <div class="col-md-8">{booking.tour?.price != null ? formatCurrency(booking.tour.price) : '-'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Dibuat</div>
+            <div class="col-md-8">{formatDate(booking.created_at, true)}</div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 text-muted small">Diperbarui</div>
+            <div class="col-md-8">{formatDate(booking.updated_at, true)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Catatan</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" action={`/api/admin/bookings/${booking.id}/notes`} id="notesForm">
+            <textarea name="notes" class="form-control mb-3" rows="4" placeholder="Tambahkan catatan internal (mis. permintaan khusus, hasil telepon, dll)...">{booking.notes ?? ''}</textarea>
+            <button type="submit" class="btn btn-outline-primary btn-sm" data-notes-submit>
+              <i class="bi bi-check-lg me-1"></i> Simpan Catatan
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+        </div>
+        <div class="card-body p-0">
+          {logs.data.length === 0 ? (
+            <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+          ) : (
+            <ul class="list-group list-group-flush">
+              {logs.data.map((log) => (
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-medium">{log.description ?? log.action}</div>
+                    <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                  </div>
+                  <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Ubah Status</h5>
+        </div>
+        <div class="card-body d-grid gap-2">
+          {BOOKING_STATUSES.filter((s) => s !== booking.status).map((s) => (
+            <form method="post" action={`/api/admin/bookings/${booking.id}/status`}>
+              <input type="hidden" name="status" value={s} />
+              <button type="submit" class="btn btn-outline-secondary w-100 text-start">
+                <i class="bi bi-arrow-right-circle me-1"></i> Tandai {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            </form>
+          ))}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body d-grid gap-2">
+          <a href={`/admin/bookings/${booking.id}/edit`} class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i> Edit Booking
+          </a>
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            onclick={`openDeleteModal({ action: '/api/admin/bookings/${booking.id}', label: '${booking.customer_name.replace(/'/g, "\\'")}' })`}
+          >
+            <i class="bi bi-trash3 me-1"></i> Hapus Booking
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('notesForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-notes-submit]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

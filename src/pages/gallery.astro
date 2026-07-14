@@ -1,0 +1,102 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import Pagination from '@/components/user/Pagination.astro';
+import { listGallery } from '@/services';
+import { publicStorageUrl } from '@/utils/storage';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+const category = url.searchParams.get('category') ?? '';
+
+const { data: items, totalPages } = await listGallery(supabase, {
+  category: category || undefined,
+  page,
+  perPage: 12,
+});
+
+const { data: allItems } = await listGallery(supabase, { perPage: 100 });
+const categories = Array.from(new Set(allItems.map((g) => g.category).filter((c): c is string => !!c)));
+const slider = allItems.slice(0, 8);
+---
+
+<PublicLayout title="Gallery" description="Koleksi foto perjalanan dan destinasi terbaik kami.">
+  <Breadcrumb title="Gallery" current="Gallery" subtitle="Momen-momen terbaik dari setiap perjalanan bersama kami." />
+
+  {slider.length > 0 && (
+    <section id="gallery-slider" class="gallery-slider section">
+      <div class="container">
+        <div class="gallery-container">
+          <div class="swiper init-swiper">
+            <script type="application/json" class="swiper-config" set:html={JSON.stringify({
+              loop: true,
+              speed: 800,
+              autoplay: { delay: 4000 },
+              effect: 'coverflow',
+              grabCursor: true,
+              centeredSlides: true,
+              slidesPerView: 'auto',
+              coverflowEffect: { rotate: 50, stretch: 0, depth: 100, modifier: 1, slideShadows: true },
+              pagination: { el: '.swiper-pagination', type: 'bullets', clickable: true },
+              navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+              breakpoints: {
+                '320': { slidesPerView: 1, spaceBetween: 10 },
+                '768': { slidesPerView: 2, spaceBetween: 20 },
+                '1024': { slidesPerView: 3, spaceBetween: 30 },
+              },
+            })} />
+            <div class="swiper-wrapper">
+              {slider.map((g) => (
+                <div class="swiper-slide">
+                  <div class="gallery-item">
+                    <div class="gallery-img">
+                      <a class="glightbox" data-gallery="images-gallery" href={publicStorageUrl(supabase, g.image_url)}>
+                        <img src={publicStorageUrl(supabase, g.image_url)} class="img-fluid" alt={g.title} />
+                        <div class="gallery-overlay"><i class="bi bi-plus-circle"></i></div>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section id="gallery" class="gallery section">
+    <div class="container">
+      {categories.length > 0 && (
+        <div class="filter-tabs mb-4">
+          <ul class="destination-filters isotope-filters">
+            <li class={!category ? 'filter-active' : ''}><a href="/gallery">All</a></li>
+            {categories.map((c) => (
+              <li class={category === c ? 'filter-active' : ''}><a href={`/gallery?category=${encodeURIComponent(c)}`}>{c}</a></li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div class="gallery-grid">
+        {items.length === 0 && (
+          <p class="text-center text-muted py-5">Belum ada foto galeri.</p>
+        )}
+        {items.map((g, i) => (
+          <div class={`gallery-item ${i % 7 === 1 || i % 7 === 6 ? 'featured' : ''}`}>
+            <a class="glightbox" data-gallery="images-gallery" href={publicStorageUrl(supabase, g.image_url)}>
+              <img src={publicStorageUrl(supabase, g.image_url)} class="img-fluid" alt={g.title} loading="lazy" />
+              <div class="gallery-overlay"><i class="bi bi-plus-lg"></i></div>
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Pagination currentPage={page} totalPages={totalPages} basePath="/gallery" searchParams={url.searchParams} />
+</PublicLayout>

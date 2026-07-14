@@ -1,0 +1,43 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getPageBySlug, getSettings } from '@/services';
+import { formatDate } from '@/utils/format';
+
+const supabase = Astro.locals.supabase;
+const page = await getPageBySlug(supabase, 'privacy');
+const settings = await getSettings(supabase);
+---
+
+<PublicLayout title={page?.meta_title || 'Privacy Policy'} description={page?.meta_description || 'Kebijakan privasi TravelTime.'}>
+  <section id="privacy" class="privacy section">
+    <div class="container">
+      <div class="privacy-header">
+        <div class="header-content">
+          <div class="last-updated">Effective Date: {formatDate(page?.updated_at)}</div>
+          <h1>{page?.title || 'Privacy Policy'}</h1>
+          <p class="intro-text">Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi Anda.</p>
+        </div>
+      </div>
+
+      <div class="privacy-content">
+        {page?.content ? (
+          <div class="content-section" set:html={page.content} />
+        ) : (
+          <div class="content-section">
+            <h2>Konten Belum Tersedia</h2>
+            <p>Kebijakan privasi belum diisi. Silakan lengkapi melalui dashboard admin.</p>
+          </div>
+        )}
+      </div>
+
+      <div class="privacy-contact">
+        <h2>Contact Us</h2>
+        <p>Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami:</p>
+        <div class="contact-details">
+          <p><strong>Email:</strong> {settings?.email || '-'}</p>
+          <p><strong>Address:</strong> {settings?.address || '-'}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

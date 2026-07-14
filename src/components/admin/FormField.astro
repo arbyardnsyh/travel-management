@@ -1,0 +1,110 @@
+---
+// Reusable form field wrapper (Fondasi UI — Batch 3A).
+// Wraps PowerAdmin's native Bootstrap form markup (form-label / form-control /
+// form-select / form-check / invalid-feedback / form-text) — no new styles,
+// just a consistent structure so every CRUD form (Destinations first, then
+// Tours/Gallery/FAQ/Blog/etc.) renders labels + inputs + error messages the
+// same way.
+//
+// Usage:
+//   <FormField label="Nama Destinasi" name="name" required value={name} error={errors.name} />
+//   <FormField label="Deskripsi" name="description" as="textarea" rows={5} value={description} />
+//   <FormField label="Status" name="status" as="select" options={[{value:'draft',label:'Draft'}, ...]} value={status} />
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export interface Props {
+  label: string;
+  name: string;
+  as?: 'input' | 'textarea' | 'select';
+  type?: string;
+  value?: string | number | null;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readonly?: boolean;
+  rows?: number;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  options?: SelectOption[];
+  error?: string | null;
+  help?: string;
+  class?: string;
+}
+
+const {
+  label,
+  name,
+  as = 'input',
+  type = 'text',
+  value = '',
+  placeholder,
+  required = false,
+  disabled = false,
+  readonly = false,
+  rows = 4,
+  min,
+  max,
+  step,
+  options = [],
+  error = null,
+  help,
+  class: className = '',
+} = Astro.props;
+
+const controlClass = as === 'select' ? 'form-select' : 'form-control';
+const invalidClass = error ? 'is-invalid' : '';
+const fieldId = `field-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+---
+
+<div class={`mb-3 ${className}`}>
+  <label for={fieldId} class="form-label">
+    {label}
+    {required && <span class="text-danger">*</span>}
+  </label>
+
+  {as === 'textarea' && (
+    <textarea
+      id={fieldId}
+      name={name}
+      class={`${controlClass} ${invalidClass}`}
+      placeholder={placeholder}
+      required={required}
+      disabled={disabled}
+      readonly={readonly}
+      rows={rows}
+    >{value ?? ''}</textarea>
+  )}
+
+  {as === 'select' && (
+    <select id={fieldId} name={name} class={`${controlClass} ${invalidClass}`} required={required} disabled={disabled}>
+      {options.map((opt: SelectOption) => (
+        <option value={opt.value} selected={String(value ?? '') === opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  )}
+
+  {as === 'input' && (
+    <input
+      id={fieldId}
+      name={name}
+      type={type}
+      class={`${controlClass} ${invalidClass}`}
+      value={value ?? ''}
+      placeholder={placeholder}
+      required={required}
+      disabled={disabled}
+      readonly={readonly}
+      min={min}
+      max={max}
+      step={step}
+    />
+  )}
+
+  {error && <div class="invalid-feedback d-block">{error}</div>}
+  {help && !error && <div class="form-text">{help}</div>}
+</div>

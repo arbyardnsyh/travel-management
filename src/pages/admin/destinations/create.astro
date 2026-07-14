@@ -1,0 +1,107 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+---
+
+<AdminLayout title="Tambah Destinasi">
+  <PageHeader title="Tambah Destinasi" crumbs={[{ label: 'Master Data' }, { label: 'Destinations', href: '/admin/destinations' }, { label: 'Tambah' }]}>
+    <a href="/admin/destinations" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action="/api/admin/destinations" id="destinationForm">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Destinasi</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <FormField label="Nama Destinasi" name="name" required error={fieldError('name')} />
+              </div>
+              <div class="col-md-4">
+                <FormField label="Slug (opsional)" name="slug" help="Kosongkan untuk membuat otomatis dari nama." error={fieldError('slug')} />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Lokasi" name="location" required error={fieldError('location')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Harga" name="price" type="number" min={0} required error={fieldError('price')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Durasi" name="duration" placeholder="mis. 3 Hari 2 Malam" error={fieldError('duration')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Rating" name="rating" type="number" min={0} max={5} step="0.1" placeholder="0 - 5" help="Skala 0 - 5" error={fieldError('rating')} />
+              </div>
+            </div>
+            <FormField label="Deskripsi" name="description" as="textarea" rows={6} error={fieldError('description')} />
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value="draft" error={fieldError('status')} />
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="is_featured" name="is_featured" value="true" />
+              <label class="form-check-label" for="is_featured">Destinasi Unggulan</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="thumbnail" label="Thumbnail" folder="destination" />
+            <ImageUploader name="cover_image" label="Cover Image" folder="destination" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Destinasi
+        </button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('destinationForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

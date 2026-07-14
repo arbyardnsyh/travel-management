@@ -1,0 +1,100 @@
+---
+// Batch 3A-4 — FAQ detail (read-only view). Mirrors
+// /admin/gallery/[id]/index.astro — same folder/URL convention as
+// [id]/edit.astro.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getFaqById, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const faq = id ? await getFaqById(supabase, id) : null;
+if (!faq) {
+  return Astro.redirect('/admin/faq?toast=' + encodeURIComponent('FAQ tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'faq', entityId: faq.id, perPage: 10 });
+const statusLabel = faq.status.charAt(0).toUpperCase() + faq.status.slice(1);
+---
+
+<AdminLayout title={`Detail FAQ`}>
+  <PageHeader title="Detail FAQ" crumbs={[{ label: 'Konten' }, { label: 'FAQ', href: '/admin/faq' }, { label: faq.question }]}>
+    <a href={`/admin/faq/${faq.id}/edit`} class="btn btn-primary me-2">
+      <i class="bi bi-pencil me-1"></i> Edit
+    </a>
+    <a href="/admin/faq" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">{faq.question}</h5>
+          <StatusBadge status={faq.status} label={statusLabel} />
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Jawaban</div>
+            <div class="col-md-8" style="white-space:pre-wrap;">{faq.answer}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Urutan</div>
+            <div class="col-md-8">{faq.sort_order}</div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 text-muted small">Dibuat</div>
+            <div class="col-md-8">{formatDate(faq.created_at, true)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+        </div>
+        <div class="card-body p-0">
+          {logs.data.length === 0 ? (
+            <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+          ) : (
+            <ul class="list-group list-group-flush">
+              {logs.data.map((log) => (
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-medium">{log.description ?? log.action}</div>
+                    <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                  </div>
+                  <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body d-grid gap-2">
+          <a href={`/admin/faq/${faq.id}/edit`} class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i> Edit FAQ
+          </a>
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            onclick={`openDeleteModal({ action: '/api/admin/faq/${faq.id}', label: '${faq.question.replace(/'/g, "\\'")}' })`}
+          >
+            <i class="bi bi-trash3 me-1"></i> Hapus FAQ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

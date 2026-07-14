@@ -1,0 +1,34 @@
+---
+// Reusable "no data" state (Fondasi UI — Batch 3A).
+// Uses PowerAdmin's native `.empty-state` / `.empty-state-icon` /
+// `.empty-state-title` / `.empty-state-text` classes (see main.css) — same
+// markup pattern used across the template's apps demos.
+
+export interface Props {
+  icon?: string;
+  title?: string;
+  text?: string;
+  actionLabel?: string;
+  actionHref?: string;
+}
+
+const {
+  icon = 'bi bi-inbox',
+  title = 'Belum ada data',
+  text = 'Data akan muncul di sini setelah ditambahkan.',
+  actionLabel,
+  actionHref,
+} = Astro.props;
+---
+
+<div class="empty-state">
+  <div class="empty-state-icon"><i class={icon}></i></div>
+  <div class="empty-state-title">{title}</div>
+  <p class="empty-state-text">{text}</p>
+  {actionLabel && actionHref && (
+    <a href={actionHref} class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>{actionLabel}
+    </a>
+  )}
+  <slot />
+</div>

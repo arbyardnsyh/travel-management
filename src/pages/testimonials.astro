@@ -1,0 +1,188 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import SectionTitle from '@/components/user/SectionTitle.astro';
+import { listApprovedTestimonials } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const testimonials = await listApprovedTestimonials(supabase);
+const slider = testimonials.slice(0, 9);
+---
+
+<PublicLayout title="Testimonials" description="Apa kata para pelanggan tentang pengalaman perjalanan bersama kami.">
+  <Breadcrumb title="Testimonials" current="Testimonials" subtitle="Cerita nyata dari para wisatawan yang telah menjelajah bersama kami." />
+
+  {slider.length > 0 && (
+    <section id="slider-testimonials" class="slider-testimonials section">
+      <SectionTitle eyebrow="Check Our" heading="Testimonials" description="Testimonials" />
+      <div class="container">
+        <div class="testimonials-14 swiper init-swiper">
+          <script type="application/json" class="swiper-config" set:html={JSON.stringify({
+            loop: true,
+            speed: 600,
+            autoplay: { delay: 5000 },
+            slidesPerView: 3,
+            spaceBetween: 24,
+            pagination: { el: '.swiper-pagination', type: 'bullets', clickable: true },
+            breakpoints: {
+              '320': { slidesPerView: 1, spaceBetween: 16 },
+              '768': { slidesPerView: 2, spaceBetween: 24 },
+              '1200': { slidesPerView: 3, spaceBetween: 24 },
+            },
+          })} />
+          <div class="swiper-wrapper">
+            {slider.map((t) => (
+              <div class="swiper-slide">
+                <div class="testimonial-item">
+                  <div class="stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <i class={i < t.rating ? 'bi bi-star-fill' : 'bi bi-star'}></i>
+                    ))}
+                  </div>
+                  <p>{t.message}</p>
+                  <div class="profile">
+                    <img src={t.photo || '/assets-user/img/person/person-m-9.webp'} class="testimonial-img" alt={t.name} loading="lazy" />
+                    <div class="info">
+                      <h4>{t.name}</h4>
+                      {t.job && <span>{t.job}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div class="swiper-pagination"></div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section id="testimonials" class="testimonials section">
+    <div class="container">
+      {testimonials.length === 0 ? (
+        <p class="text-center text-muted py-5">Belum ada testimoni.</p>
+      ) : (
+        <div class="testimonial-masonry">
+          {testimonials.map((t, i) => (
+            <div class={`testimonial-item ${i % 5 === 1 || i % 5 === 4 ? 'highlight' : ''}`}>
+              <div class="testimonial-content">
+                <div class="quote-pattern"><i class="bi bi-quote"></i></div>
+                <p>{t.message}</p>
+                <div class="client-info">
+                  <div class="client-image">
+                    <img src={t.photo || '/assets-user/img/person/person-f-7.webp'} alt={t.name} />
+                  </div>
+                  <div class="client-details">
+                    <h3>{t.name}</h3>
+                    {t.job && <span class="position">{t.job}</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section id="testimonial-form" class="contact section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="form-container">
+            <h3>Share Your Experience</h3>
+            <p>Bagikan pengalaman perjalanan Anda bersama kami. Testimoni akan tampil setelah disetujui oleh tim kami.</p>
+
+            <form id="testimonial-form-el" class="php-email-form" data-ajax-handled action="/api/public/testimonial" method="post">
+              <div class="row">
+                <div class="col-md-6 form-floating mb-3">
+                  <input type="text" class="form-control" id="t-name" name="name" placeholder="Nama Lengkap" required />
+                  <label for="t-name">Nama Lengkap</label>
+                </div>
+                <div class="col-md-6 form-floating mb-3">
+                  <input type="text" class="form-control" id="t-job" name="job" placeholder="Pekerjaan (opsional)" />
+                  <label for="t-job">Pekerjaan (opsional)</label>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="t-rating" class="form-label">Rating</label>
+                  <select class="form-select" id="t-rating" name="rating" required>
+                    <option value="5">5 - Sangat Puas</option>
+                    <option value="4">4 - Puas</option>
+                    <option value="3">3 - Cukup</option>
+                    <option value="2">2 - Kurang</option>
+                    <option value="1">1 - Tidak Puas</option>
+                  </select>
+                </div>
+                <div class="col-md-6 form-floating mb-3">
+                  <input type="text" class="form-control" id="t-photo" name="photo" placeholder="URL Foto (opsional)" />
+                  <label for="t-photo">URL Foto (opsional)</label>
+                </div>
+                <div class="col-12 form-floating mb-3">
+                  <textarea class="form-control" id="t-message" name="message" rows="5" placeholder="Pesan Testimoni" style="height: 150px" required></textarea>
+                  <label for="t-message">Pesan Testimoni</label>
+                </div>
+              </div>
+
+              <div class="my-3">
+                <div class="loading">Loading</div>
+                <div class="error-message"></div>
+                <div class="sent-message">Terima kasih! Testimoni Anda akan tampil setelah disetujui.</div>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn-submit">Send Testimonial <i class="bi bi-send-fill ms-2"></i></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const form = document.getElementById('testimonial-form-el') as HTMLFormElement | null;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // BUG FIX (Testimonial double-submit / false "Error: {success:true}"):
+      // root cause was the vendor script `validate.js` binding its OWN
+      // submit listener to every `.php-email-form` on the page (it expects
+      // the raw response body to literally be "OK", not JSON), which fired
+      // alongside this listener and sent a second, duplicate POST.
+      // `stopImmediatePropagation()` alone did not fix this reliably: this
+      // inline script is compiled by Astro as a deferred module, so the
+      // vendor script's classic `<script is:inline>` listener (registered
+      // near the end of <body>) actually attaches and fires BEFORE this
+      // listener runs, regardless of DOM source order — the previous "fix"
+      // assumed source order determined registration order, which is
+      // incorrect for module vs. classic scripts. The real fix is on the
+      // form itself: `data-ajax-handled` tells validate.js to skip this
+      // form entirely, so only this listener ever runs.
+      const loading = form.querySelector<HTMLElement>('.loading');
+      const errorMessage = form.querySelector<HTMLElement>('.error-message');
+      const sentMessage = form.querySelector<HTMLElement>('.sent-message');
+      [loading, errorMessage, sentMessage].forEach((el) => el && (el.style.display = 'none'));
+      if (loading) loading.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/public/testimonial', { method: 'POST', body: new FormData(form) });
+        const json = await res.json();
+        if (loading) loading.style.display = 'none';
+        if (!res.ok || !json.success) {
+          if (errorMessage) {
+            errorMessage.textContent = 'Terjadi kesalahan. Periksa kembali data Anda.';
+            errorMessage.style.display = 'block';
+          }
+          return;
+        }
+        if (sentMessage) sentMessage.style.display = 'block';
+        form.reset();
+      } catch {
+        if (loading) loading.style.display = 'none';
+        if (errorMessage) {
+          errorMessage.textContent = 'Gagal terhubung ke server. Coba lagi.';
+          errorMessage.style.display = 'block';
+        }
+      }
+    });
+  </script>
+</PublicLayout>

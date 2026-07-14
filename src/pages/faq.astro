@@ -1,0 +1,42 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import { listPublishedFaqs } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const faqs = await listPublishedFaqs(supabase);
+---
+
+<PublicLayout title="FAQ" description="Pertanyaan yang sering diajukan seputar layanan travel kami.">
+  <Breadcrumb title="FAQ" current="FAQ" subtitle="Temukan jawaban atas pertanyaan yang paling sering diajukan." />
+
+  <section id="faq" class="faq section">
+    <div class="container">
+      <div class="row gy-4 justify-content-between">
+        <div class="col-lg-8">
+          <div class="faq-list">
+            {faqs.length === 0 && <p class="text-muted">Belum ada FAQ.</p>}
+            {faqs.map((f, i) => (
+              <div class={`faq-item ${i === 0 ? 'faq-active' : ''}`}>
+                <h3>{f.question}</h3>
+                <div class="faq-content">
+                  <p>{f.answer}</p>
+                </div>
+                <i class="bi bi-plus faq-toggle"></i>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="faq-card">
+            <i class="bi bi-chat-dots-fill"></i>
+            <h3>Can't find answer to your question?</h3>
+            <p>Tim kami siap membantu menjawab pertanyaan spesifik seputar perjalanan Anda.</p>
+            <a href="/contact" class="btn btn-primary">Contact Us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

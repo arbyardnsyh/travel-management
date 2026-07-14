@@ -1,0 +1,388 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Travel Destinations Section
+--------------------------------------------------------------*/
+.travel-destinations {
+  .filter-tabs {
+    text-align: center;
+    margin-bottom: 40px;
+
+    .destination-filters {
+      display: inline-flex;
+      background: var(--surface-color);
+      border-radius: 50px;
+      padding: 8px;
+      box-shadow: 0 4px 20px color-mix(in srgb, var(--default-color), transparent 92%);
+      list-style: none;
+      margin: 0;
+      gap: 4px;
+
+      @media (max-width: 768px) {
+        flex-wrap: wrap;
+        border-radius: 20px;
+        padding: 6px;
+        gap: 2px;
+      }
+
+      li {
+        color: color-mix(in srgb, var(--default-color), transparent 30%);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: 40px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+
+        @media (max-width: 768px) {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+
+        &:hover,
+        &.filter-active {
+          color: var(--contrast-color);
+          background: var(--accent-color);
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+
+  .destination-grid {
+    .destination-overlay {
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      height: 100%;
+      cursor: pointer;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg,
+            color-mix(in srgb, var(--default-color), transparent 70%) 0%,
+            color-mix(in srgb, var(--default-color), transparent 40%) 100%);
+        transition: all 0.3s ease;
+        z-index: 1;
+      }
+
+      &:hover {
+        img {
+          transform: scale(1.05);
+        }
+
+        &::before {
+          background: linear-gradient(135deg,
+              color-mix(in srgb, var(--default-color), transparent 80%) 0%,
+              color-mix(in srgb, var(--default-color), transparent 50%) 100%);
+        }
+
+        .overlay-content {
+          transform: translateY(-8px);
+        }
+      }
+
+      .overlay-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 24px;
+        z-index: 2;
+        transition: transform 0.3s ease;
+        color: #fff;
+
+        .badge-wrapper {
+          margin-bottom: 16px;
+
+          .destination-tag {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+
+            &.featured {
+              background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+              color: white;
+            }
+
+            &.popular {
+              background: linear-gradient(135deg, #4ecdc4, #70e2d9);
+              color: white;
+            }
+
+            &.adventure {
+              background: linear-gradient(135deg, #ff9f43, #ffb366);
+              color: white;
+            }
+
+            &.culture {
+              background: linear-gradient(135deg, #c44569, #d76894);
+              color: white;
+            }
+
+            &.luxury {
+              background: linear-gradient(135deg, #6c5ce7, #8b7ded);
+              color: white;
+            }
+
+            &.romantic {
+              background: linear-gradient(135deg, #ff6b9d, #ff8bb5);
+              color: white;
+            }
+
+            &.vibrant {
+              background: linear-gradient(135deg, #ff9f43, #ffb366);
+              color: white;
+            }
+
+            &.scenic {
+              background: linear-gradient(135deg, #00b894, #00d2aa);
+              color: white;
+            }
+          }
+        }
+
+        .content-wrapper {
+          color: white;
+
+          h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-family: var(--heading-font);
+            color: #fff;
+          }
+
+          h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-family: var(--heading-font);
+            color: #fff;
+          }
+
+          .destination-excerpt {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            opacity: 0.9;
+          }
+
+          .destination-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+
+            .info-item {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 13px;
+              opacity: 0.9;
+
+              i {
+                font-size: 14px;
+              }
+            }
+
+            .tours-count {
+              font-size: 13px;
+              opacity: 0.8;
+            }
+
+            .price,
+            .price-tag {
+              font-weight: 600;
+              font-size: 16px;
+            }
+          }
+
+          .explore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+
+            &:hover {
+              color: white;
+              transform: translateX(4px);
+            }
+
+            i {
+              transition: transform 0.3s ease;
+            }
+
+            &:hover i {
+              transform: translateX(4px);
+            }
+          }
+        }
+      }
+    }
+
+    .destination-large {
+      .destination-overlay {
+        height: 480px;
+
+        @media (max-width: 992px) {
+          height: 360px;
+        }
+
+        @media (max-width: 768px) {
+          height: 300px;
+        }
+      }
+    }
+
+    .destination-medium {
+      .destination-overlay {
+        height: 320px;
+
+        @media (max-width: 992px) {
+          height: 280px;
+        }
+
+        @media (max-width: 768px) {
+          height: 250px;
+        }
+      }
+    }
+
+    .destination-small {
+      .destination-overlay {
+        height: 238px;
+
+        @media (max-width: 992px) {
+          height: 200px;
+        }
+
+        @media (max-width: 768px) {
+          height: 180px;
+        }
+
+        .overlay-content {
+          padding: 16px;
+
+          .content-wrapper {
+            h4 {
+              font-size: 16px;
+              margin-bottom: 8px;
+            }
+
+            .destination-info {
+              margin-bottom: 0;
+
+              .tours-count,
+              .price {
+                font-size: 12px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .explore-more {
+    background: linear-gradient(135deg, var(--surface-color), color-mix(in srgb, var(--surface-color), var(--accent-color) 5%));
+    padding: 40px;
+    border-radius: 20px;
+    border: 1px solid color-mix(in srgb, var(--default-color), transparent 90%);
+
+    h4 {
+      color: var(--heading-color);
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-family: var(--heading-font);
+    }
+
+    p {
+      color: color-mix(in srgb, var(--default-color), transparent 25%);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .btn-explore {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-color);
+      color: var(--contrast-color);
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: color-mix(in srgb, var(--accent-color), transparent 15%);
+        color: var(--contrast-color);
+        transform: translateY(-2px);
+
+        i {
+          transform: translateX(4px);
+        }
+      }
+
+      i {
+        transition: transform 0.3s ease;
+        font-size: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      padding: 30px 20px;
+
+      h4 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 15px;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .destination-grid {
+      .destination-overlay {
+        .overlay-content {
+          padding: 16px;
+
+          .content-wrapper {
+            h3 {
+              font-size: 20px;
+            }
+
+            .destination-excerpt {
+              font-size: 13px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

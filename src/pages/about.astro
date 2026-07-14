@@ -1,0 +1,88 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import { getPageBySlug } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const page = await getPageBySlug(supabase, 'about');
+---
+
+<PublicLayout title={page?.meta_title || 'About'} description={page?.meta_description || 'Kenali lebih dekat TravelTime dan komitmen kami dalam menghadirkan perjalanan terbaik.'}>
+  <Breadcrumb title="About" current="About" subtitle="Kenali cerita dan komitmen kami dalam menghadirkan pengalaman perjalanan terbaik." />
+
+  <section id="about" class="about section">
+    <div class="container">
+      <div class="row g-5 align-items-center">
+        <div class="col-lg-6">
+          <div class="content">
+            <h2 class="mb-4">{page?.title || 'Crafting Unforgettable Journeys'}</h2>
+            {page?.content ? (
+              <div class="mb-5" set:html={page.content} />
+            ) : (
+              <p class="lead mb-4">Konten halaman About belum diisi. Silakan lengkapi melalui dashboard admin.</p>
+            )}
+
+            <div class="row g-4 mb-5">
+              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">350+</div><div class="stat-label">Tours Completed</div></div></div>
+              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">25+</div><div class="stat-label">Countries</div></div></div>
+              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">8</div><div class="stat-label">Years Experience</div></div></div>
+              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">98%</div><div class="stat-label">Satisfied Guests</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6">
+          <div class="image-stack">
+            <div class="image-main"><img src="/assets-user/img/travel/showcase-3.webp" alt="Travel Experience" class="img-fluid" /></div>
+            <div class="image-overlay"><img src="/assets-user/img/travel/misc-12.webp" alt="Happy Travelers" class="img-fluid" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-5">
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-award"></i></div>
+            <h5>Expert Local Guides</h5>
+            <p>Pemandu berpengalaman yang memahami budaya dan destinasi secara mendalam.</p>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-headset"></i></div>
+            <h5>24/7 Customer Support</h5>
+            <p>Tim kami siap membantu kapan pun Anda membutuhkan, sepanjang perjalanan.</p>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+            <h5>Best Price Guarantee</h5>
+            <p>Harga kompetitif dengan transparansi penuh, tanpa biaya tersembunyi.</p>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-geo-alt"></i></div>
+            <h5>Local Expertise</h5>
+            <p>Pengetahuan mendalam tentang setiap destinasi yang kami tawarkan.</p>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-calendar-check"></i></div>
+            <h5>Flexible Booking</h5>
+            <p>Perubahan jadwal yang mudah sesuai kebutuhan perjalanan Anda.</p>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="feature-item text-center">
+            <div class="feature-icon"><i class="bi bi-leaf"></i></div>
+            <h5>Sustainable Travel</h5>
+            <p>Berkomitmen pada praktik perjalanan yang bertanggung jawab dan berkelanjutan.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

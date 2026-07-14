@@ -1,0 +1,129 @@
+---
+// Batch 3A-4 — FAQ edit form (mirrors /admin/gallery/[id]/edit.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getFaqById, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const faq = id ? await getFaqById(supabase, id) : null;
+if (!faq) {
+  return Astro.redirect('/admin/faq?toast=' + encodeURIComponent('FAQ tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'faq', entityId: faq.id, perPage: 8 });
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+---
+
+<AdminLayout title={`Edit FAQ`}>
+  <PageHeader title="Edit FAQ" crumbs={[{ label: 'Konten' }, { label: 'FAQ', href: '/admin/faq' }, { label: faq.question }]}>
+    <a href={`/admin/faq/${faq.id}`} class="btn btn-outline-secondary me-2">
+      <i class="bi bi-eye me-1"></i> Lihat Detail
+    </a>
+    <a href="/admin/faq" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/faq/${faq.id}`} id="faqForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Pertanyaan &amp; Jawaban</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Pertanyaan" name="question" value={faq.question} required error={fieldError('question')} />
+            <FormField label="Jawaban" name="answer" as="textarea" rows={6} value={faq.answer} required error={fieldError('answer')} />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value={faq.status} error={fieldError('status')} />
+            <FormField
+              label="Urutan"
+              name="sort_order"
+              type="number"
+              min={0}
+              value={faq.sort_order}
+              help="Dapat juga diatur ulang lewat tombol panah di daftar FAQ."
+              error={fieldError('sort_order')}
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/faq/${faq.id}', label: '${faq.question.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus FAQ
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('faqForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

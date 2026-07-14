@@ -1,0 +1,78 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getBlogCategoryById } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const { id } = Astro.params;
+
+const category = id ? await getBlogCategoryById(supabase, id) : null;
+if (!category) {
+  return Astro.redirect('/admin/blogs/categories?toast=' + encodeURIComponent('Kategori tidak ditemukan.') + '&toastType=error');
+}
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+---
+
+<AdminLayout title={`Edit ${category.name}`}>
+  <PageHeader title="Edit Kategori Blog" crumbs={[{ label: 'Blog' }, { label: 'Categories', href: '/admin/blogs/categories' }, { label: category.name }]}>
+    <a href="/admin/blogs/categories" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <form method="post" action={`/api/admin/blogs/categories/${category.id}`} id="categoryForm">
+        <input type="hidden" name="_method" value="PUT" />
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Kategori</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Nama Kategori" name="name" value={category.name} required />
+            <FormField label="Slug" name="slug" value={category.slug} help="Kosongkan untuk mempertahankan slug saat ini." />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-4 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        {user?.role === 'admin' && (
+          <button
+            type="button"
+            class="btn btn-outline-danger w-100"
+            onclick={`openDeleteModal({ action: '/api/admin/blogs/categories/${category.id}', label: '${category.name.replace(/'/g, "\\'")}' })`}
+          >
+            <i class="bi bi-trash3 me-1"></i> Hapus Kategori
+          </button>
+        )}
+      </form>
+    </div>
+  </div>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('categoryForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

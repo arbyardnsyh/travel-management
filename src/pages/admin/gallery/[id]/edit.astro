@@ -1,0 +1,128 @@
+---
+// Batch 3A-3 — Gallery edit form (mirrors /admin/tours/[id]/edit.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getGalleryItemById, listGalleryCategories, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const item = id ? await getGalleryItemById(supabase, id) : null;
+if (!item) {
+  return Astro.redirect('/admin/gallery?toast=' + encodeURIComponent('Foto galeri tidak ditemukan.') + '&toastType=error');
+}
+
+const [categories, logs] = await Promise.all([
+  listGalleryCategories(supabase),
+  listActivityLogs(supabase, { entity: 'gallery', entityId: item.id, perPage: 8 }),
+]);
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+---
+
+<AdminLayout title={`Edit ${item.title}`}>
+  <PageHeader title="Edit Foto Gallery" crumbs={[{ label: 'Konten' }, { label: 'Gallery', href: '/admin/gallery' }, { label: item.title }]}>
+    <a href={`/admin/gallery/${item.id}`} class="btn btn-outline-secondary me-2">
+      <i class="bi bi-eye me-1"></i> Lihat Detail
+    </a>
+    <a href="/admin/gallery" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/gallery/${item.id}`} id="galleryForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Foto</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Judul Foto" name="title" value={item.title} required error={fieldError('title')} />
+            <FormField
+              label="Kategori (opsional)"
+              name="category"
+              value={item.category ?? ''}
+              placeholder="mis. Pantai, Gunung, Kuliner"
+              help={categories.length ? `Kategori yang sudah ada: ${categories.join(', ')}` : undefined}
+              error={fieldError('category')}
+            />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="image_url" label="Foto" folder="gallery" value={item.image_url} required error={fieldError('image_url')} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/gallery/${item.id}', label: '${item.title.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus Foto
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('galleryForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

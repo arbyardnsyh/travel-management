@@ -1,0 +1,48 @@
+---
+import type { SiteSettings } from '@/lib/database.types';
+
+export interface Props {
+  settings: SiteSettings | null;
+}
+
+const { settings } = Astro.props;
+const websiteName = settings?.website_name || 'TravelTime';
+const currentPath = Astro.url.pathname;
+
+const isActive = (path: string) =>
+  currentPath === path || (path !== '/' && currentPath.startsWith(path));
+---
+
+<header id="header" class="header d-flex align-items-center fixed-top">
+  <div class="container position-relative d-flex align-items-center justify-content-between">
+    <a href="/" class="logo d-flex align-items-center me-auto me-xl-0">
+      {settings?.logo && <img src={settings.logo} alt={websiteName} />}
+      <h1 class="sitename">{websiteName}</h1>
+    </a>
+
+    <nav id="navmenu" class="navmenu">
+      <ul>
+        <li><a href="/" class={isActive('/') && currentPath === '/' ? 'active' : ''}>Home</a></li>
+        <li><a href="/about" class={isActive('/about') ? 'active' : ''}>About</a></li>
+        <li><a href="/destinations" class={isActive('/destinations') ? 'active' : ''}>Destinations</a></li>
+        <li><a href="/tours" class={isActive('/tours') ? 'active' : ''}>Tours</a></li>
+        <li><a href="/gallery" class={isActive('/gallery') ? 'active' : ''}>Gallery</a></li>
+        <li><a href="/blog" class={isActive('/blog') ? 'active' : ''}>Blog</a></li>
+        <li class="dropdown">
+          <a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+          <ul>
+            <li><a href="/testimonials">Testimonials</a></li>
+            <li><a href="/faq">Frequently Asked Questions</a></li>
+            <li><a href="/booking">Booking</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+          </ul>
+        </li>
+        <li><a href="/contact" class={isActive('/contact') ? 'active' : ''}>Contact</a></li>
+      </ul>
+      <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+    </nav>
+
+    <a class="btn-getstarted" href="/booking">Book Now</a>
+  </div>
+</header>

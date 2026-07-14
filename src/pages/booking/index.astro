@@ -1,0 +1,182 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import { listTours, getTourBySlug } from '@/services';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const supabase = Astro.locals.supabase;
+const preselectedSlug = Astro.url.searchParams.get('tour') ?? '';
+
+const { data: tours } = await listTours(supabase, { status: 'published', perPage: 100 });
+const preselected = preselectedSlug ? await getTourBySlug(supabase, preselectedSlug) : null;
+---
+
+<PublicLayout title="Booking" description="Pesan tour impian Anda bersama TravelTime.">
+  <Breadcrumb title="Booking" current="Booking" subtitle="Lengkapi formulir berikut untuk memesan perjalanan Anda." />
+
+  <section id="travel-booking" class="travel-booking section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="booking-form">
+            <form action="/api/public/booking" method="post" id="booking-form" class="php-email-form" data-ajax-handled>
+              <div class="booking-step" id="step-1">
+                <div class="step-header">
+                  <h3>Step 1: Select Tour &amp; Travel Date</h3>
+                  <p>Pilih paket tour pilihan Anda dan tanggal keberangkatan</p>
+                </div>
+                <div class="step-content">
+                  <div class="row">
+                    <div class="col-md-12">
+                      <div class="form-group">
+                        <label for="tour_id">Tour Package</label>
+                        <select name="tour_id" id="tour_id" class="form-select" required>
+                          <option value="">Choose a tour package</option>
+                          {tours.map((t) => (
+                            <option value={t.id} selected={preselected?.id === t.id}>
+                              {t.title} — {formatCurrency(t.price)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="travel_date">Travel Date</label>
+                        <input type="date" name="travel_date" id="travel_date" class="form-control" required />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="participants">Number of Participants</label>
+                        <input type="number" name="participants" id="participants" class="form-control" min="1" value="1" required />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="booking-step" id="step-2">
+                <div class="step-header">
+                  <h3>Step 2: Traveler Information</h3>
+                  <p>Lengkapi data diri Anda sebagai pemesan</p>
+                </div>
+                <div class="step-content">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="customer_name">Full Name</label>
+                        <input type="text" name="customer_name" id="customer_name" class="form-control" required />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="customer_email">Email Address</label>
+                        <input type="email" name="customer_email" id="customer_email" class="form-control" required />
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" name="phone" id="phone" class="form-control" required />
+                      </div>
+                    </div>
+                    <div class="col-md-12">
+                      <div class="form-group">
+                        <label for="notes">Special Requests (optional)</label>
+                        <textarea name="notes" id="notes" rows="4" class="form-control" placeholder="Beri tahu kami jika ada permintaan khusus..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="my-3">
+                <div class="loading">Loading</div>
+                <div class="error-message"></div>
+                <div class="sent-message">Booking Anda berhasil dikirim. Tim kami akan segera menghubungi Anda!</div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="bi bi-check-circle"></i> Complete Booking
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="booking-summary">
+            <div class="summary-header"><h4>Booking Summary</h4></div>
+            <div class="summary-content">
+              {preselected ? (
+                <div class="selected-tour">
+                  <img src={publicStorageUrl(supabase, preselected.thumbnail) || '/assets-user/img/travel/destination-8.webp'} alt={preselected.title} class="img-fluid" />
+                  <div class="tour-info">
+                    <h5>{preselected.title}</h5>
+                    {preselected.duration && <p>{preselected.duration}</p>}
+                  </div>
+                </div>
+              ) : (
+                <p class="text-muted">Pilih tour untuk melihat ringkasan pemesanan.</p>
+              )}
+              {preselected && (
+                <div class="price-breakdown">
+                  <h6>Price</h6>
+                  <div class="price-row">
+                    <span>Tour Package (per orang)</span>
+                    <span>{formatCurrency(preselected.price)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const form = document.getElementById('booking-form') as HTMLFormElement | null;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // BUG FIX (Booking double-submit / false "Error: {success:true}"):
+      // same root cause as testimonials.astro (see the comment there) — the
+      // vendor `validate.js` script attached its own submit listener to
+      // this `.php-email-form` and fired BEFORE this one, sending a
+      // duplicate POST and flashing the raw JSON as an error.
+      // `stopImmediatePropagation()` did not reliably prevent that (script
+      // registration order does not follow DOM source order for module vs.
+      // classic scripts). `data-ajax-handled` on the form now tells
+      // validate.js to skip this form entirely.
+      const loading = form.querySelector<HTMLElement>('.loading');
+      const errorMessage = form.querySelector<HTMLElement>('.error-message');
+      const sentMessage = form.querySelector<HTMLElement>('.sent-message');
+      [loading, errorMessage, sentMessage].forEach((el) => el && (el.style.display = 'none'));
+      if (loading) loading.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/public/booking', { method: 'POST', body: new FormData(form) });
+        const json = await res.json();
+        if (loading) loading.style.display = 'none';
+        if (!res.ok || !json.success) {
+          if (errorMessage) {
+            errorMessage.textContent = 'Terjadi kesalahan. Periksa kembali data Anda.';
+            errorMessage.style.display = 'block';
+          }
+          return;
+        }
+        if (sentMessage) sentMessage.style.display = 'block';
+        form.reset();
+      } catch {
+        if (loading) loading.style.display = 'none';
+        if (errorMessage) {
+          errorMessage.textContent = 'Gagal terhubung ke server. Coba lagi.';
+          errorMessage.style.display = 'block';
+        }
+      }
+    });
+  </script>
+</PublicLayout>

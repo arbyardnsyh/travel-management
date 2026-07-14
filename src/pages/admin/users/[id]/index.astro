@@ -1,0 +1,252 @@
+---
+// Batch 3A-8 — User detail (read-only view + quick role/status actions +
+// reset password + activity log). Mirrors /admin/bookings/[id]/index.astro's
+// detail+quick-action shell. Admin-only.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getUserById, listActivityLogs } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+import { USER_ROLES } from '@/lib/constants';
+
+const currentUser = Astro.locals.user;
+if (currentUser?.role !== 'admin') {
+  return Astro.redirect('/admin/dashboard?toast=' + encodeURIComponent('Hanya admin yang dapat mengakses halaman Users.') + '&toastType=error');
+}
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const user = id ? await getUserById(supabase, id) : null;
+if (!user) {
+  return Astro.redirect('/admin/users?toast=' + encodeURIComponent('Pengguna tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'users', entityId: user.id, perPage: 10 });
+const isSelf = currentUser?.id === user.id;
+const roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+const avatarSrc = user.avatar_url ? publicStorageUrl(supabase, user.avatar_url) : '/assets-admin/img/profile-img.webp';
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Detail Pengguna">
+  <div class="page-users-view">
+    <PageHeader title="Detail Pengguna" crumbs={[{ label: 'Users', href: '/admin/users' }, { label: user.name }]}>
+      <a href={`/admin/users/${user.id}/edit`} class="btn btn-primary me-2">
+        <i class="bi bi-pencil me-1"></i> Edit
+      </a>
+      <a href="/admin/users" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </PageHeader>
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-body">
+            <div class="user-info mb-3">
+              <div class="user-avatar-wrap">
+                <img src={avatarSrc} alt={user.name} class="user-avatar" style="width:56px;height:56px;" />
+              </div>
+              <div class="user-details">
+                <div class="user-name fs-5">{user.name}</div>
+                <div class="user-email">{user.email}</div>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mb-4">
+              <span class={`role-badge ${user.role === 'admin' ? 'admin' : 'manager'}`}>{roleLabel}</span>
+              <StatusBadge status={user.is_active ? 'active' : 'inactive'} label={user.is_active ? 'Aktif' : 'Nonaktif'} />
+              {isSelf && <span class="badge bg-secondary-subtle text-secondary">Ini akun Anda</span>}
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-4 text-muted small">ID Pengguna</div>
+              <div class="col-md-8"><code>{user.id}</code></div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-4 text-muted small">Bergabung</div>
+              <div class="col-md-8">{formatDate(user.created_at, true)}</div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 text-muted small">Diperbarui</div>
+              <div class="col-md-8">{formatDate(user.updated_at, true)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat untuk pengguna ini.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        {!isSelf && (
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Ubah Role</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+              {USER_ROLES.filter((r) => r !== user.role).map((r) => (
+                <form method="post" action={`/api/admin/users/${user.id}/role`}>
+                  <input type="hidden" name="role" value={r} />
+                  <button type="submit" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Jadikan {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                </form>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Keamanan Akun</h5>
+          </div>
+          <div class="card-body d-grid gap-2">
+            <button type="button" class="btn btn-outline-primary" id="resetPasswordBtn" data-user-id={user.id} data-user-name={user.name}>
+              <i class="bi bi-key me-1"></i> Reset Password
+            </button>
+
+            {!isSelf && (
+              <form method="post" action={`/api/admin/users/${user.id}/status`}>
+                <input type="hidden" name="is_active" value={user.is_active ? 'false' : 'true'} />
+                <button type="submit" class={`btn w-100 ${user.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}>
+                  <i class={`bi ${user.is_active ? 'bi-slash-circle' : 'bi-check-circle'} me-1`}></i>
+                  {user.is_active ? 'Nonaktifkan Pengguna' : 'Aktifkan Pengguna'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body d-grid gap-2">
+            <a href={`/admin/users/${user.id}/edit`} class="btn btn-primary">
+              <i class="bi bi-pencil me-1"></i> Edit Pengguna
+            </a>
+            {!isSelf && (
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                onclick={`openDeleteModal({ action: '/api/admin/users/${user.id}', label: '${user.name.replace(/'/g, "\\'")}' })`}
+              >
+                <i class="bi bi-trash3 me-1"></i> Hapus Permanen
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ConfirmDeleteModal />
+
+    <!-- Reset Password result modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title d-flex align-items-center gap-2">
+              <i class="bi bi-key-fill text-primary"></i> Password Baru
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p id="resetPasswordText" class="mb-2"></p>
+            <div class="input-group">
+              <input type="text" class="form-control font-monospace" id="resetPasswordValue" readonly />
+              <button class="btn btn-outline-secondary" type="button" id="copyPasswordBtn">
+                <i class="bi bi-clipboard"></i> Salin
+              </button>
+            </div>
+            <div class="form-text mt-2">Password ini hanya ditampilkan satu kali. Segera sampaikan ke pengguna secara aman.</div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Selesai</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const resetBtn = document.getElementById('resetPasswordBtn') as HTMLButtonElement | null;
+  const modalEl = document.getElementById('resetPasswordModal');
+  const textEl = document.getElementById('resetPasswordText');
+  const valueEl = document.getElementById('resetPasswordValue') as HTMLInputElement | null;
+  const copyBtn = document.getElementById('copyPasswordBtn');
+
+  resetBtn?.addEventListener('click', async () => {
+    const userId = resetBtn.dataset.userId;
+    const userName = resetBtn.dataset.userName;
+    if (!userId) return;
+
+    resetBtn.disabled = true;
+    const originalHtml = resetBtn.innerHTML;
+    resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Mereset...';
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Gagal mereset password.');
+      }
+      if (textEl) textEl.textContent = `Password baru untuk ${userName ?? 'pengguna ini'}:`;
+      if (valueEl) valueEl.value = body.data.password;
+      // @ts-ignore
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal mereset password.');
+    } finally {
+      resetBtn.disabled = false;
+      resetBtn.innerHTML = originalHtml;
+    }
+  });
+
+  copyBtn?.addEventListener('click', async () => {
+    if (!valueEl?.value) return;
+    try {
+      await navigator.clipboard.writeText(valueEl.value);
+      copyBtn.innerHTML = '<i class="bi bi-check-lg"></i> Tersalin';
+      setTimeout(() => {
+        copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Salin';
+      }, 1500);
+    } catch {
+      valueEl.select();
+    }
+  });
+</script>

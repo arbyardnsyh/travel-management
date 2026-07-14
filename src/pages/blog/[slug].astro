@@ -1,0 +1,123 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getBlogBySlug, listBlogs } from '@/services';
+import { formatDate } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const { slug } = Astro.params;
+const supabase = Astro.locals.supabase;
+
+const blog = slug ? await getBlogBySlug(supabase, slug) : null;
+
+if (!blog || blog.status !== 'published' || blog.deleted_at) {
+  return Astro.redirect('/blog');
+}
+
+const { data: relatedRaw } = blog.category_id
+  ? await listBlogs(supabase, { status: 'published', categoryId: blog.category_id, perPage: 4 })
+  : await listBlogs(supabase, { status: 'published', perPage: 4 });
+const related = relatedRaw.filter((b) => b.id !== blog.id).slice(0, 3);
+---
+
+<PublicLayout title={blog.title} description={blog.content?.replace(/<[^>]*>/g, ' ').slice(0, 160) || blog.title} image={publicStorageUrl(supabase, blog.thumbnail) || undefined}>
+  <section id="blog-details" class="blog-details section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-9">
+          <article class="article">
+            <div class="hero-img">
+              <img src={publicStorageUrl(supabase, blog.thumbnail) || '/assets-user/img/blog/blog-post-3.webp'} alt={blog.title} class="img-fluid" loading="lazy" />
+              <div class="meta-overlay">
+                <div class="meta-categories">
+                  {blog.category && <a href={`/blog?category=${blog.category.slug}`} class="category">{blog.category.name}</a>}
+                  <span class="divider">•</span>
+                  <span class="reading-time"><i class="bi bi-clock"></i> {Math.max(1, Math.round((blog.content?.split(' ').length ?? 200) / 200))} min read</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="article-content">
+              <div class="content-header">
+                <h1 class="title">{blog.title}</h1>
+
+                <div class="author-info">
+                  <div class="author-details">
+                    <img src="/assets-user/img/person/person-f-8.webp" alt={blog.author || 'Admin'} class="author-img" />
+                    <div class="info">
+                      <h4>{blog.author || 'Admin'}</h4>
+                    </div>
+                  </div>
+                  <div class="post-meta">
+                    <span class="date"><i class="bi bi-calendar3"></i> {formatDate(blog.published_at || blog.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="content" set:html={blog.content || ''} />
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Author bio: only `blog.author` (a plain name string) exists in the schema — no
+       author table/profile, so credentials/stats/social links below are generic
+       placeholders kept for visual parity, not real per-author data. -->
+  <section id="blog-author" class="blog-author section">
+    <div class="container">
+      <div class="author-card">
+        <div class="author-background">
+          <div class="author-image-wrapper">
+            <img src="/assets-user/img/person/person-m-12.webp" class="author-image" alt={blog.author || 'Admin'} loading="lazy" />
+          </div>
+        </div>
+        <div class="author-details">
+          <div class="author-meta">
+            <h3 class="author-name">{blog.author || 'Admin'}</h3>
+            <div class="author-credentials">
+              <span class="badge">Content Writer</span>
+            </div>
+          </div>
+          <div class="author-description">
+            Penulis di {blog.category?.name || 'blog'} kami, berbagi cerita dan tips seputar perjalanan.
+          </div>
+          <div class="author-footer">
+            <div class="social-links">
+              <a href="#" title="Twitter"><i class="bi bi-twitter-x"></i></a>
+              <a href="#" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {related.length > 0 && (
+    <section id="blog-posts" class="blog-posts section">
+      <div class="container">
+        <div class="section-title">
+          <h2>Related Posts</h2>
+        </div>
+        <div class="row gy-4">
+          {related.map((b) => (
+            <div class="col-lg-4">
+              <article class="position-relative h-100">
+                <div class="post-img position-relative overflow-hidden">
+                  <img src={publicStorageUrl(supabase, b.thumbnail) || '/assets-user/img/blog/blog-post-1.webp'} class="img-fluid" alt={b.title} loading="lazy" />
+                </div>
+                <div class="meta d-flex align-items-end">
+                  <div class="d-flex align-items-center"><i class="bi bi-person"></i> <span class="ps-2">{b.author || 'Admin'}</span></div>
+                </div>
+                <div class="post-content d-flex flex-column">
+                  <h3 class="post-title">{b.title}</h3>
+                  <a href={`/blog/${b.slug}`} class="readmore stretched-link"><span>Read More</span><i class="bi bi-arrow-right"></i></a>
+                </div>
+              </article>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+</PublicLayout>

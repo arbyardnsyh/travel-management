@@ -1,0 +1,205 @@
+/*--------------------------------------------------------------
+# Activity Page
+# Shared settings layout via _settings.scss
+# Activity-specific components below
+--------------------------------------------------------------*/
+
+.page-activity {
+
+  /* Card Titles */
+  .activity-card-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin: 0 0 var(--spacing-md);
+  }
+
+  /* Summary Grid */
+  .activity-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+
+  .activity-summary-item {
+    text-align: center;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    background: var(--background-color);
+  }
+
+  .activity-summary-icon {
+    width: 28px;
+    height: 28px;
+    margin: 0 auto 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+  }
+
+  .activity-summary-icon.accent {
+    background: color-mix(in srgb, var(--accent-color), transparent 88%);
+    color: var(--accent-color);
+  }
+
+  .activity-summary-icon.success {
+    background: var(--success-color-light);
+    color: var(--success-color);
+  }
+
+  .activity-summary-icon.warning {
+    background: var(--warning-color-light);
+    color: var(--warning-color);
+  }
+
+  .activity-summary-icon.danger {
+    background: var(--danger-color-light);
+    color: var(--danger-color);
+  }
+
+  .activity-summary-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    line-height: 1.2;
+  }
+
+  .activity-summary-label {
+    font-size: 0.6875rem;
+    color: var(--muted-color);
+  }
+
+  /* Sessions */
+  .activity-sessions {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-session-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .activity-session-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .activity-session-item:first-child {
+    padding-top: 0;
+  }
+
+  .activity-session-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--background-color);
+    color: var(--muted-color);
+    font-size: 0.875rem;
+  }
+
+  .activity-session-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-session-device {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color);
+  }
+
+  .activity-session-meta {
+    font-size: 0.6875rem;
+    color: var(--muted-color);
+  }
+
+  .activity-session-badge.current {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: var(--success-color-light);
+    color: var(--success-color);
+  }
+
+  .activity-session-revoke {
+    font-size: 0.6875rem;
+    padding: 2px 8px;
+  }
+
+  /* Activity Timeline */
+  .activity-timeline {
+    position: relative;
+  }
+
+  .activity-date-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--muted-color);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: var(--spacing-sm) 0;
+    margin-top: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .activity-date-label:first-child {
+    margin-top: 0;
+  }
+
+  .activity-timeline-item {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .activity-timeline-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .activity-timeline-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+  }
+
+  .activity-timeline-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-timeline-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color);
+  }
+
+  .activity-timeline-desc {
+    font-size: 0.75rem;
+    color: var(--muted-color);
+    margin-top: 1px;
+  }
+
+  .activity-timeline-time {
+    font-size: 0.6875rem;
+    color: var(--light-color);
+    margin-top: 4px;
+  }
+}

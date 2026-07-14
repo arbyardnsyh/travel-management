@@ -1,0 +1,95 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import DestinationCard from '@/components/user/DestinationCard.astro';
+import Pagination from '@/components/user/Pagination.astro';
+import { listDestinations } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+const q = url.searchParams.get('q') ?? '';
+const location = url.searchParams.get('location') ?? '';
+
+const { data: destinations, totalPages } = await listDestinations(supabase, {
+  status: 'published',
+  q: q || undefined,
+  page,
+  perPage: 9,
+});
+
+const filtered = location ? destinations.filter((d) => d.location.toLowerCase().includes(location.toLowerCase())) : destinations;
+
+// Distinct locations for the filter tabs (from this page's results; a lightweight approximation
+// since `location` isn't a normalized/indexed column in the schema).
+const { data: allForLocations } = await listDestinations(supabase, { status: 'published', perPage: 100 });
+const locations = Array.from(new Set(allForLocations.map((d) => d.location))).slice(0, 6);
+---
+
+<PublicLayout title="Destinations" description="Jelajahi berbagai destinasi wisata pilihan kami.">
+  <Breadcrumb title="Destinations" current="Destinations" subtitle="Temukan destinasi impian Anda dari berbagai penjuru dunia." />
+
+  <section id="travel-destinations" class="travel-destinations section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+          <h2>Discover Amazing Travel Destinations</h2>
+          <p class="mb-5">Kumpulan destinasi terbaik yang telah dikurasi khusus untuk memberikan pengalaman perjalanan tak terlupakan.</p>
+        </div>
+      </div>
+
+      <div class="row justify-content-center mb-4">
+        <div class="col-lg-6">
+          <form method="get" class="search-bar d-flex">
+            <input type="text" name="q" class="form-control" placeholder="Cari nama destinasi..." value={q} />
+            <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="isotope-layout" data-default-filter="*" data-layout="fitRows" data-sort="original-order">
+        {locations.length > 0 && (
+          <div class="filter-tabs">
+            <ul class="destination-filters isotope-filters">
+              <li class={!location ? 'filter-active' : ''}><a href="/destinations">All</a></li>
+              {locations.map((loc) => (
+                <li class={location === loc ? 'filter-active' : ''}><a href={`/destinations?location=${encodeURIComponent(loc)}`}>{loc}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div class="row gy-4 isotope-container destination-grid">
+          {filtered.length === 0 && (
+            <div class="col-12 text-center text-muted py-5">Tidak ada destinasi ditemukan.</div>
+          )}
+          {filtered.map((d, i) => {
+            const cyclePos = i % 8; // large, small×4, medium×3 — matches the template's 8-item masonry rhythm
+            const size = cyclePos === 0 ? 'large' : cyclePos < 5 ? 'small' : 'medium';
+            const colClass = size === 'large' ? 'col-lg-12' : size === 'small' ? 'col-lg-3 col-md-6' : 'col-lg-4 col-md-6';
+            return (
+              <div class={`${colClass} destination-item isotope-item`}>
+                <DestinationCard destination={d} size={size} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div class="row justify-content-center mt-5">
+        <div class="col-lg-6 text-center">
+          <div class="explore-more">
+            <h4>Ready to Start Your Journey?</h4>
+            <p class="mb-4">Tim kami siap membantu merancang perjalanan sempurna sesuai keinginan Anda.</p>
+            <a href="/contact" class="btn-explore">
+              <span>Talk to an Expert</span>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Pagination currentPage={page} totalPages={totalPages} basePath="/destinations" searchParams={url.searchParams} />
+</PublicLayout>

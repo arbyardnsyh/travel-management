@@ -1,0 +1,32 @@
+---
+import type { Tour } from '@/lib/database.types';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+export interface Props {
+  tour: Tour;
+}
+
+const { tour: t } = Astro.props;
+const supabase = Astro.locals.supabase;
+---
+
+<div class="tour-item">
+  <div class="tour-image">
+    <img src={publicStorageUrl(supabase, t.thumbnail) || '/assets-user/img/travel/tour-12.webp'} alt={t.title} class="img-fluid" loading="lazy" />
+    {t.quota != null && <div class="tour-availability">{t.quota} slot tersisa</div>}
+  </div>
+  <div class="tour-details">
+    <h4>{t.title}</h4>
+    {t.description && <p>{t.description.slice(0, 120)}{t.description.length > 120 ? '…' : ''}</p>}
+    <div class="tour-highlights">
+      {t.duration && <span><i class="bi bi-clock"></i> {t.duration}</span>}
+      {t.destination && <span><i class="bi bi-geo-alt"></i> {t.destination.name}</span>}
+    </div>
+    <div class="tour-pricing">
+      <span class="price">{formatCurrency(t.price)}</span>
+      <span class="per">/ orang</span>
+    </div>
+    <a href={`/tours/${t.slug}`} class="btn btn-primary btn-sm mt-3">Lihat Detail</a>
+  </div>
+</div>

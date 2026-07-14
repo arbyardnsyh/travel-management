@@ -1,0 +1,125 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import BlogCard from '@/components/user/BlogCard.astro';
+import Pagination from '@/components/user/Pagination.astro';
+import { listBlogs, listBlogCategories } from '@/services';
+import { formatDate } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+const q = url.searchParams.get('q') ?? '';
+const categorySlug = url.searchParams.get('category') ?? '';
+
+const categories = await listBlogCategories(supabase);
+const activeCategory = categories.find((c) => c.slug === categorySlug);
+
+const { data: latest } = await listBlogs(supabase, { status: 'published', perPage: 3 });
+const [hero, ...secondary] = latest;
+
+const { data: posts, totalPages } = await listBlogs(supabase, {
+  status: 'published',
+  q: q || undefined,
+  categoryId: activeCategory?.id,
+  page,
+  perPage: 6,
+});
+---
+
+<PublicLayout title="Blog" description="Tips, cerita, dan inspirasi perjalanan dari tim TravelTime.">
+  <Breadcrumb title="Blog" current="Blog" subtitle="Cerita, tips, dan inspirasi untuk perjalanan Anda berikutnya." />
+
+  {hero && (
+    <section id="blog-hero" class="blog-hero section">
+      <div class="container">
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <article class="featured-post position-relative mb-4">
+              <img src={publicStorageUrl(supabase, hero.thumbnail) || '/assets-user/img/blog/blog-hero-9.webp'} alt={hero.title} class="img-fluid" />
+              <div class="post-overlay">
+                <div class="post-content">
+                  <div class="post-meta">
+                    {hero.category && <span class="category">{hero.category.name}</span>}
+                    <span class="date">{formatDate(hero.published_at || hero.created_at)}</span>
+                  </div>
+                  <h2 class="post-title"><a href={`/blog/${hero.slug}`}>{hero.title}</a></h2>
+                  {hero.content && <p class="post-excerpt">{hero.content.replace(/<[^>]*>/g, ' ').slice(0, 160)}…</p>}
+                  <div class="post-author"><span>by</span> <a href="#">{hero.author || 'Admin'}</a></div>
+                </div>
+              </div>
+            </article>
+
+            {secondary.length > 0 && (
+              <div class="row g-4">
+                {secondary.map((p) => (
+                  <div class="col-md-6">
+                    <article class="secondary-post">
+                      <div class="post-image">
+                        <img src={publicStorageUrl(supabase, p.thumbnail) || '/assets-user/img/blog/blog-post-1.webp'} alt={p.title} class="img-fluid" />
+                      </div>
+                      <div class="post-content">
+                        <div class="post-meta">
+                          {p.category && <span class="category">{p.category.name}</span>}
+                          <span class="date">{formatDate(p.published_at || p.created_at)}</span>
+                        </div>
+                        <h3 class="post-title"><a href={`/blog/${p.slug}`}>{p.title}</a></h3>
+                        <div class="post-author"><span>by</span> <a href="#">{p.author || 'Admin'}</a></div>
+                      </div>
+                    </article>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div class="col-lg-4">
+            <div class="news-tabs">
+              <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#top-stories" type="button">Categories</button></li>
+              </ul>
+              <div class="tab-content">
+                <div class="tab-pane fade show active" id="top-stories">
+                  {categories.map((c) => (
+                    <a href={`/blog?category=${c.slug}`} class="d-flex justify-content-between align-items-center py-2 border-bottom text-decoration-none">
+                      <span>{c.name}</span>
+                      <i class="bi bi-chevron-right"></i>
+                    </a>
+                  ))}
+                  {categories.length === 0 && <p class="text-muted mb-0">Belum ada kategori.</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section id="blog-posts" class="blog-posts section">
+    <div class="container">
+      <div class="row justify-content-center mb-4">
+        <div class="col-lg-6">
+          <form method="get" class="search-bar d-flex">
+            <input type="text" name="q" class="form-control" placeholder="Cari artikel..." value={q} />
+            <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="row gy-4">
+        {posts.length === 0 && (
+          <p class="text-center text-muted py-5">Tidak ada artikel ditemukan.</p>
+        )}
+        {posts.map((b) => (
+          <div class="col-lg-4">
+            <BlogCard blog={b} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Pagination currentPage={page} totalPages={totalPages} basePath="/blog" searchParams={url.searchParams} />
+</PublicLayout>

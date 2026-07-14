@@ -1,0 +1,47 @@
+---
+import type { Destination } from '@/lib/database.types';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+export interface Props {
+  destination: Destination;
+  size?: 'large' | 'medium' | 'small';
+}
+
+const { destination: d, size = 'medium' } = Astro.props;
+const supabase = Astro.locals.supabase;
+---
+
+<div class={`destination-${size}`}>
+  <div class="destination-overlay">
+    <img src={publicStorageUrl(supabase, d.thumbnail) || '/assets-user/img/travel/destination-1.webp'} alt={d.name} class="img-fluid" loading="lazy" />
+    <div class="overlay-content">
+      {d.is_featured && (
+        <div class="badge-wrapper">
+          <span class="destination-tag featured">Featured</span>
+        </div>
+      )}
+      <div class="content-wrapper">
+        <h3>{d.name}</h3>
+        {d.description && <p class="destination-excerpt">{d.description.slice(0, 110)}{d.description.length > 110 ? '…' : ''}</p>}
+        <div class="destination-info">
+          <div class="info-item">
+            <i class="bi bi-geo-alt"></i>
+            <span>{d.location}</span>
+          </div>
+          {d.rating > 0 && (
+            <div class="info-item">
+              <i class="bi bi-star-fill text-warning"></i>
+              <span>{d.rating.toFixed(1)}</span>
+            </div>
+          )}
+          <div class="price-tag">From {formatCurrency(d.price)}</div>
+        </div>
+        <a href={`/destinations/${d.slug}`} class="explore-btn">
+          <span>Explore Now</span>
+          <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

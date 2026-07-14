@@ -1,0 +1,93 @@
+---
+// Batch 3A-8 — Add User. Mirrors /admin/blogs/create.astro's form+redirect
+// shell. Admin-only (see /admin/users/index.astro for the guard rationale).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import { USER_ROLES } from '@/lib/constants';
+
+const currentUser = Astro.locals.user;
+if (currentUser?.role !== 'admin') {
+  return Astro.redirect('/admin/dashboard?toast=' + encodeURIComponent('Hanya admin yang dapat menambahkan pengguna.') + '&toastType=error');
+}
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const roleOptions = USER_ROLES.map((r) => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }));
+---
+
+<AdminLayout title="Tambah Pengguna">
+  <div class="page-users-edit">
+    <PageHeader title="Tambah Pengguna" crumbs={[{ label: 'Users', href: '/admin/users' }, { label: 'Tambah' }]}>
+      <a href="/admin/users" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </PageHeader>
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    <form method="post" action="/api/admin/users" id="userForm">
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <div class="user-section-header">
+                <div class="user-section-icon accent"><i class="bi bi-person"></i></div>
+                <h6 class="user-section-title mb-0">Informasi Akun</h6>
+              </div>
+            </div>
+            <div class="card-body">
+              <FormField label="Nama Lengkap" name="name" required error={fieldError('name')} />
+              <FormField label="Email" name="email" type="email" required error={fieldError('email')} />
+              <FormField
+                label="Password"
+                name="password"
+                type="password"
+                required
+                help="Minimal 8 karakter. Pengguna dapat menggantinya sendiri lewat halaman Profile setelah login."
+                error={fieldError('password')}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card mb-4">
+            <div class="card-header">
+              <div class="user-section-header">
+                <div class="user-section-icon danger"><i class="bi bi-shield-lock"></i></div>
+                <h6 class="user-section-title mb-0">Role</h6>
+              </div>
+            </div>
+            <div class="card-body">
+              <FormField label="Role" name="role" as="select" options={roleOptions} value="editor" error={fieldError('role')} help="Admin memiliki akses penuh, termasuk mengelola pengguna lain." />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+            <i class="bi bi-check-lg me-1"></i> Simpan Pengguna
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('userForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

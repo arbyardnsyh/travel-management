@@ -1,0 +1,101 @@
+---
+// Batch 3A-11 — Contact Messages trash (mirrors /admin/testimonials/trash.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listContacts } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: contacts, count, totalPages } = await listContacts(supabase, {
+  q: q || undefined,
+  onlyDeleted: true,
+  page,
+  perPage,
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Arsip Contact Messages">
+  <PageHeader title="Arsip Contact Messages" crumbs={[{ label: 'Interaction' }, { label: 'Contact Messages', href: '/admin/contacts' }, { label: 'Arsip' }]}>
+    <a href="/admin/contacts" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {contacts.length === 0 && !q ? (
+    <div class="card">
+      <div class="card-body">
+        <EmptyState icon="bi bi-trash3" title="Arsip kosong" text="Pesan kontak yang dihapus akan muncul di sini dan dapat dipulihkan kapan saja." />
+      </div>
+    </div>
+  ) : (
+    <DataTable
+      columns={[
+        { key: 'name', label: 'Nama' },
+        { key: 'email', label: 'Email' },
+        { key: 'deleted_at', label: 'Diarsipkan' },
+      ]}
+      basePath="/admin/contacts/trash"
+      searchParams={searchParams}
+      searchPlaceholder="Cari pesan diarsipkan..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="pesan"
+      isEmpty={contacts.length === 0}
+      emptyIcon="bi bi-search"
+      emptyTitle="Tidak ditemukan"
+      emptyText={`Tidak ada pesan diarsipkan yang cocok dengan "${q}".`}
+      actionsLabel="Aksi"
+    >
+      {contacts.map((contact) => (
+        <tr>
+          <td class="fw-semibold text-muted">{contact.name}</td>
+          <td class="users-meta">{contact.email}</td>
+          <td class="users-meta">{formatDate(contact.deleted_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <form method="post" action={`/api/admin/contacts/${contact.id}/restore`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Pulihkan">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/contacts/${contact.id}?permanent=1', label: '${contact.name.replace(/'/g, "\\'")} (permanen)' })`}
+                >
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+  )}
+
+  <ConfirmDeleteModal />
+</AdminLayout>

@@ -1,0 +1,152 @@
+---
+// Reusable admin list table (Fondasi UI — Batch 3A).
+// Wraps PowerAdmin's native `.card` + `.users-toolbar` + `.users-search` +
+// `.table.table-hover` + `.users-pagination` markup (see users.html) so
+// every CRUD list (Destinations first, then Tours/Gallery/Testimonials/
+// FAQ/Bookings/Blog/Users/Activity Logs) shares one search+sort+pagination
+// shell. The actual <tbody> rows are passed in via the default slot so each
+// module keeps full control over its own columns/actions.
+//
+// Usage:
+//   <DataTable
+//     columns={[{ key: 'name', label: 'Nama', sortable: true }, { key: 'status', label: 'Status' }]}
+//     basePath="/admin/destinations"
+//     searchParams={Astro.url.searchParams}
+//     page={page} totalPages={totalPages} total={count} perPage={perPage}
+//     isEmpty={rows.length === 0}
+//     emptyTitle="Belum ada destinasi"
+//   >
+//     {rows.map((r) => <tr>...</tr>)}
+//   </DataTable>
+
+import Pagination from '@/components/shared/Pagination.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+
+export interface Column {
+  key: string;
+  label: string;
+  sortable?: boolean;
+  class?: string;
+  width?: string;
+}
+
+export interface Props {
+  columns: Column[];
+  basePath: string;
+  searchParams: URLSearchParams;
+  searchPlaceholder?: string;
+  page: number;
+  totalPages: number;
+  total: number;
+  perPage: number;
+  itemLabel?: string;
+  isEmpty?: boolean;
+  emptyIcon?: string;
+  emptyTitle?: string;
+  emptyText?: string;
+  /** Extra trailing column header (e.g. "Actions") rendered without sort affordance. */
+  showActionsColumn?: boolean;
+  actionsLabel?: string;
+}
+
+const {
+  columns,
+  basePath,
+  searchParams,
+  searchPlaceholder = 'Cari...',
+  page,
+  totalPages,
+  total,
+  perPage,
+  itemLabel = 'data',
+  isEmpty = false,
+  emptyIcon,
+  emptyTitle,
+  emptyText,
+  showActionsColumn = true,
+  actionsLabel = 'Aksi',
+} = Astro.props;
+
+const currentQ = searchParams.get('q') ?? '';
+const currentSort = searchParams.get('sort') ?? '';
+const currentDir = searchParams.get('dir') ?? 'asc';
+
+// Params preserved by the search form / sort links, other than the one being changed.
+function preservedParams(exclude: string[]): [string, string][] {
+  return [...searchParams.entries()].filter(([k]) => !exclude.includes(k) && k !== 'page');
+}
+
+function sortHref(key: string): string {
+  const params = new URLSearchParams(preservedParams(['sort', 'dir']));
+  const nextDir = currentSort === key && currentDir === 'asc' ? 'desc' : 'asc';
+  params.set('sort', key);
+  params.set('dir', nextDir);
+  params.set('page', '1');
+  return `${basePath}?${params.toString()}`;
+}
+
+const hiddenParams = preservedParams(['q']);
+---
+
+<div class="card">
+  <div class="users-toolbar">
+    <form method="get" action={basePath} class="users-search">
+      <i class="bi bi-search"></i>
+      <input type="text" name="q" value={currentQ} placeholder={searchPlaceholder} />
+      {hiddenParams.map(([k, v]) => <input type="hidden" name={k} value={v} />)}
+    </form>
+
+    <div class="users-toolbar-actions">
+      <slot name="filters" />
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    {isEmpty ? (
+      <EmptyState icon={emptyIcon} title={emptyTitle} text={emptyText} />
+    ) : (
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              {columns.map((col) => (
+                <th class={col.class} style={col.width ? `width:${col.width};` : undefined}>
+                  {col.sortable ? (
+                    <a href={sortHref(col.key)} class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
+                      {col.label}
+                      {currentSort === col.key ? (
+                        <i class={`bi ${currentDir === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down'} small`}></i>
+                      ) : (
+                        <i class="bi bi-arrow-down-up small text-muted"></i>
+                      )}
+                    </a>
+                  ) : (
+                    col.label
+                  )}
+                </th>
+              ))}
+              {showActionsColumn && (
+                <th class="text-center" style="width: 120px;">{actionsLabel}</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            <slot />
+          </tbody>
+        </table>
+      </div>
+    )}
+
+    {!isEmpty && (
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        basePath={basePath}
+        searchParams={searchParams}
+        itemLabel={itemLabel}
+      />
+    )}
+  </div>
+</div>

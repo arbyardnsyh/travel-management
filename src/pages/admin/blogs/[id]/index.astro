@@ -1,0 +1,127 @@
+---
+// Batch 3A-6 — Blog Article detail. Mirrors /admin/faq/[id]/index.astro,
+// plus a thumbnail preview and a "Preview" action that opens the read-only
+// /admin/blogs/[id]/preview page (kept entirely under /admin so the public
+// frontend — src/pages/blog/[slug].astro — stays untouched, even for drafts
+// that aren't publicly visible yet).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getBlogById, listActivityLogs } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const blog = id ? await getBlogById(supabase, id) : null;
+if (!blog) {
+  return Astro.redirect('/admin/blogs?toast=' + encodeURIComponent('Artikel tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'blogs', entityId: blog.id, perPage: 10 });
+const statusLabel = blog.status.charAt(0).toUpperCase() + blog.status.slice(1);
+---
+
+<AdminLayout title={`Detail Artikel — ${blog.title}`}>
+  <PageHeader title="Detail Artikel Blog" crumbs={[{ label: 'Blog' }, { label: 'Articles', href: '/admin/blogs' }, { label: blog.title }]}>
+    <a href={`/admin/blogs/${blog.id}/preview`} class="btn btn-outline-secondary me-2" target="_blank">
+      <i class="bi bi-box-arrow-up-right me-1"></i> Preview
+    </a>
+    <a href={`/admin/blogs/${blog.id}/edit`} class="btn btn-primary me-2">
+      <i class="bi bi-pencil me-1"></i> Edit
+    </a>
+    <a href="/admin/blogs" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">{blog.title}</h5>
+          <StatusBadge status={blog.status} label={statusLabel} />
+        </div>
+        {blog.thumbnail && (
+          <img src={publicStorageUrl(supabase, blog.thumbnail)} alt={blog.title} class="w-100" style="max-height:320px;object-fit:cover;" />
+        )}
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Slug</div>
+            <div class="col-md-8">{blog.slug}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Kategori</div>
+            <div class="col-md-8">{blog.category?.name ?? '—'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Penulis</div>
+            <div class="col-md-8">{blog.author ?? '—'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Tanggal Terbit</div>
+            <div class="col-md-8">{blog.published_at ? formatDate(blog.published_at, true) : '—'}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Dibuat</div>
+            <div class="col-md-8">{formatDate(blog.created_at, true)}</div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4 text-muted small">Diperbarui</div>
+            <div class="col-md-8">{formatDate(blog.updated_at, true)}</div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 text-muted small">Konten</div>
+            <div class="col-md-8 blog-content-preview" set:html={blog.content || '<span class="text-muted">Belum ada konten.</span>'} />
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+        </div>
+        <div class="card-body p-0">
+          {logs.data.length === 0 ? (
+            <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+          ) : (
+            <ul class="list-group list-group-flush">
+              {logs.data.map((log) => (
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="fw-medium">{log.description ?? log.action}</div>
+                    <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                  </div>
+                  <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body d-grid gap-2">
+          <a href={`/admin/blogs/${blog.id}/preview`} class="btn btn-outline-secondary" target="_blank">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Preview Artikel
+          </a>
+          <a href={`/admin/blogs/${blog.id}/edit`} class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i> Edit Artikel
+          </a>
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            onclick={`openDeleteModal({ action: '/api/admin/blogs/${blog.id}', label: '${blog.title.replace(/'/g, "\\'")}' })`}
+          >
+            <i class="bi bi-trash3 me-1"></i> Hapus Artikel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

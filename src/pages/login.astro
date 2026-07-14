@@ -1,0 +1,150 @@
+---
+import { loginWithPassword } from '@/lib/auth';
+import { loginSchema } from '@/lib/validation';
+
+let errorMessage: string | null = null;
+const url = Astro.url;
+const redirectTo = url.searchParams.get('redirect') || '/admin/dashboard';
+
+if (url.searchParams.get('error') === 'forbidden') {
+  errorMessage = 'Akun Anda tidak memiliki akses ke dashboard.';
+}
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const parsed = loginSchema.safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+    });
+
+    if (!parsed.success) {
+      errorMessage = parsed.error.issues[0]?.message ?? 'Email dan password wajib diisi.';
+    } else {
+      const result = await loginWithPassword(parsed.data.email, parsed.data.password, Astro.cookies);
+      if (result.success) {
+        return Astro.redirect(redirectTo);
+      }
+      errorMessage = result.error || 'Login gagal.';
+    }
+  } catch (err) {
+    errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | TravelTime Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+
+    <link href="/assets-admin/img/favicon.png" rel="icon" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link href="/assets-admin/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/assets-admin/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" />
+    <link href="/assets-admin/css/main.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <div class="auth-layout">
+      <div class="auth-brand">
+        <div class="auth-brand-inner">
+          <a href="/" class="auth-brand-logo">
+            <img src="/assets-admin/img/logo.webp" alt="TravelTime" />
+            <span>TravelTime</span>
+          </a>
+          <div class="auth-brand-content">
+            <h2 class="auth-brand-heading">Kelola website travel Anda</h2>
+            <p class="auth-brand-desc">
+              Satu dashboard untuk mengelola destinasi, tur, booking, blog, dan seluruh konten website.
+            </p>
+            <ul class="auth-brand-features">
+              <li><i class="bi bi-check-circle-fill"></i> Manajemen konten real-time</li>
+              <li><i class="bi bi-check-circle-fill"></i> Booking & pelanggan terpusat</li>
+              <li><i class="bi bi-check-circle-fill"></i> Keamanan berbasis Supabase Auth</li>
+            </ul>
+          </div>
+          <div class="auth-brand-footer">&copy; {new Date().getFullYear()} TravelTime. All Rights Reserved.</div>
+        </div>
+      </div>
+
+      <div class="auth-main">
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-card-header">
+              <h1 class="auth-title">Selamat datang kembali</h1>
+              <p class="auth-subtitle">Masuk untuk mengakses dashboard admin</p>
+            </div>
+
+            {errorMessage && (
+              <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <form class="auth-form" method="post" novalidate>
+              <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                  placeholder="name@example.com"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    placeholder="Masukkan password"
+                    required
+                  />
+                  <button class="btn btn-outline-secondary" type="button" data-toggle-password>
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+            </form>
+          </div>
+        </div>
+        <footer class="auth-footer">
+          <div class="auth-footer-links">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/contact">Help</a>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script is:inline src="/assets-admin/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script is:inline src="/assets-admin/js/theme.js"></script>
+    <script>
+      const toggleBtn = document.querySelector('[data-toggle-password]');
+      const passwordInput = document.getElementById('password');
+      toggleBtn?.addEventListener('click', () => {
+        if (!(passwordInput instanceof HTMLInputElement)) return;
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        const icon = toggleBtn.querySelector('i');
+        if (icon) icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+      });
+    </script>
+  </body>
+</html>

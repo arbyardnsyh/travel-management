@@ -1,0 +1,138 @@
+---
+// Batch 3A-4 — Testimonial edit form (mirrors /admin/gallery/[id]/edit.astro
+// pattern). Admin acts as moderator, not creator — this form lets staff fix
+// typos/content in a submitted testimonial before/after approving it.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { getTestimonialById, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const testimonial = id ? await getTestimonialById(supabase, id) : null;
+if (!testimonial) {
+  return Astro.redirect('/admin/testimonials?toast=' + encodeURIComponent('Testimoni tidak ditemukan.') + '&toastType=error');
+}
+
+const logs = await listActivityLogs(supabase, { entity: 'testimonials', entityId: testimonial.id, perPage: 8 });
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+---
+
+<AdminLayout title={`Edit Testimoni`}>
+  <PageHeader title="Edit Testimoni" crumbs={[{ label: 'Konten' }, { label: 'Testimonials', href: '/admin/testimonials' }, { label: testimonial.name }]}>
+    <a href={`/admin/testimonials/${testimonial.id}`} class="btn btn-outline-secondary me-2">
+      <i class="bi bi-eye me-1"></i> Lihat Detail
+    </a>
+    <a href="/admin/testimonials" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/testimonials/${testimonial.id}`} id="testimonialForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Testimoni</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <FormField label="Nama" name="name" value={testimonial.name} required error={fieldError('name')} />
+              </div>
+              <div class="col-md-6">
+                <FormField label="Pekerjaan (opsional)" name="job" value={testimonial.job ?? ''} error={fieldError('job')} />
+              </div>
+            </div>
+            <FormField
+              label="Rating"
+              name="rating"
+              type="number"
+              min={1}
+              max={5}
+              step="0.5"
+              value={testimonial.rating}
+              required
+              error={fieldError('rating')}
+            />
+            <FormField label="Pesan Testimoni" name="message" as="textarea" rows={6} value={testimonial.message} required error={fieldError('message')} />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Foto</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="photo" label="Foto Profil" folder="testimonial" value={testimonial.photo} error={fieldError('photo')} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/testimonials/${testimonial.id}', label: '${testimonial.name.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus Testimoni
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('testimonialForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

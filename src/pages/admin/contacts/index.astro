@@ -1,0 +1,145 @@
+---
+// Batch 3A-11 — Contact Messages list (mirrors /admin/testimonials/index.astro
+// pattern). Contacts originate from the public site (`/contact` form) —
+// admin has no Create button here, only manages: view detail, mark as
+// read/unread, soft delete/restore/permanent delete.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listContacts } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const statusFilter = searchParams.get('status') ?? ''; // '', 'read', 'unread'
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: contacts, count, totalPages } = await listContacts(supabase, {
+  q: q || undefined,
+  onlyUnread: statusFilter === 'unread' ? true : undefined,
+  isRead: statusFilter === 'read' ? true : undefined,
+  page,
+  perPage,
+});
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header — the read/unread filter itself is applied server-side above
+// (via onlyUnread/isRead) so pagination counts stay accurate.
+const sorted = [...contacts].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'name') cmp = a.name.localeCompare(b.name);
+  else if (sort === 'subject') cmp = (a.subject ?? '').localeCompare(b.subject ?? '');
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+function filterHref(next: Partial<{ status: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : statusFilter;
+  if (nextStatus) params.set('status', nextStatus);
+  return `/admin/contacts?${params.toString()}`;
+}
+---
+
+<AdminLayout title="Contact Messages">
+  <PageHeader title="Contact Messages" crumbs={[{ label: 'Interaction' }, { label: 'Contact Messages' }]}>
+    <a href="/admin/contacts/trash" class="btn btn-outline-secondary">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'name', label: 'Nama', sortable: true },
+      { key: 'email', label: 'Email', sortable: false },
+      { key: 'subject', label: 'Subject', sortable: true },
+      { key: 'created_at', label: 'Tanggal', sortable: true },
+      { key: 'status', label: 'Status', sortable: false },
+    ]}
+    basePath="/admin/contacts"
+    searchParams={searchParams}
+    searchPlaceholder="Cari nama atau email..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="pesan"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-envelope"
+    emptyTitle={q ? 'Pesan tidak ditemukan' : 'Belum ada pesan'}
+    emptyText={q ? `Tidak ada pesan yang cocok dengan "${q}".` : 'Pesan baru dari form kontak akan muncul di sini.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {statusFilter === 'unread' ? 'Unread' : statusFilter === 'read' ? 'Read' : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          <li><a class="dropdown-item" href={filterHref({ status: 'unread' })}>Unread</a></li>
+          <li><a class="dropdown-item" href={filterHref({ status: 'read' })}>Read</a></li>
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((contact) => (
+      <tr class={!contact.is_read ? 'fw-semibold' : ''}>
+        <td>{contact.name}</td>
+        <td class="users-meta">{contact.email}</td>
+        <td>{contact.subject || <span class="text-muted">Tidak ada subject</span>}</td>
+        <td class="users-meta">{formatDate(contact.created_at, true)}</td>
+        <td><StatusBadge status={contact.is_read ? 'read' : 'unread'} label={contact.is_read ? 'Read' : 'Unread'} /></td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/contacts/${contact.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            {contact.is_read ? (
+              <form method="post" action={`/api/admin/contacts/${contact.id}/status`} class="d-inline">
+                <input type="hidden" name="status" value="unread" />
+                <button type="submit" class="users-action-btn" title="Tandai Belum Dibaca">
+                  <i class="bi bi-envelope"></i>
+                </button>
+              </form>
+            ) : (
+              <form method="post" action={`/api/admin/contacts/${contact.id}/status`} class="d-inline">
+                <input type="hidden" name="status" value="read" />
+                <button type="submit" class="users-action-btn" title="Tandai Dibaca">
+                  <i class="bi bi-envelope-open"></i>
+                </button>
+              </form>
+            )}
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/contacts/${contact.id}', label: '${contact.name.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

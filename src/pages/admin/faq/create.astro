@@ -1,0 +1,81 @@
+---
+// Batch 3A-4 — FAQ create form (mirrors /admin/destinations/create.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+---
+
+<AdminLayout title="Tambah FAQ">
+  <PageHeader title="Tambah FAQ" crumbs={[{ label: 'Konten' }, { label: 'FAQ', href: '/admin/faq' }, { label: 'Tambah' }]}>
+    <a href="/admin/faq" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action="/api/admin/faq" id="faqForm">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Pertanyaan &amp; Jawaban</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Pertanyaan" name="question" required error={fieldError('question')} />
+            <FormField label="Jawaban" name="answer" as="textarea" rows={6} required error={fieldError('answer')} />
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value="published" error={fieldError('status')} />
+            <FormField
+              label="Urutan"
+              name="sort_order"
+              type="number"
+              min={0}
+              value={0}
+              help="Angka lebih kecil tampil lebih dulu. Dapat diatur ulang lewat tombol panah di daftar FAQ."
+              error={fieldError('sort_order')}
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan FAQ
+        </button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('faqForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

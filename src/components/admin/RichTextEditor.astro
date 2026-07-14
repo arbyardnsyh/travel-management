@@ -1,0 +1,88 @@
+---
+// Reusable rich text editor (Fondasi UI — Batch 3A).
+// Wraps PowerAdmin's bundled Quill (assets-admin/vendor/quill, snow theme —
+// see forms-editors.html #postContentEditor for the reference toolbar) for
+// long-text HTML fields (`blogs.content`, `pages.content`, and destination
+// `description` if a module later wants richer copy).
+//
+// Writes the editor's HTML into a hidden <textarea name={name}> so plain
+// native `<form method="post">` submits still work with zero client JS
+// framework, matching ARCHITECTURE.md §9's "no React/Vue/Svelte" rule for
+// admin forms.
+//
+// Usage:
+//   <RichTextEditor name="content" label="Konten" value={blog?.content} />
+
+export interface Props {
+  name: string;
+  label: string;
+  value?: string | null;
+  required?: boolean;
+  error?: string | null;
+  help?: string;
+  height?: string;
+}
+
+const { name, label, value = '', required = false, error = null, help, height = '260px' } = Astro.props;
+const editorId = `rte-${name.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+---
+
+<div class="mb-3">
+  <label class="form-label">
+    {label}
+    {required && <span class="text-danger">*</span>}
+  </label>
+
+  <div class={`rte-container ${error ? 'is-invalid' : ''}`} style={error ? 'border:1px solid var(--bs-danger);border-radius:var(--radius-md);' : ''}>
+    <div id={`${editorId}-editor`} style={`min-height:${height};`} set:html={value ?? ''} />
+  </div>
+
+  <textarea name={name} id={editorId} hidden required={required}>{value ?? ''}</textarea>
+
+  {error && <div class="invalid-feedback d-block">{error}</div>}
+  {help && !error && <div class="form-text">{help}</div>}
+</div>
+
+<script define:vars={{ editorId }}>
+  function initRte() {
+    const editorEl = document.getElementById(`${editorId}-editor`);
+    const textarea = document.getElementById(editorId);
+    if (!editorEl || !textarea || editorEl.dataset.quillWired === '1') return;
+    // @ts-ignore - Quill loaded globally via AdminLayout vendor script
+    if (typeof Quill === 'undefined') return;
+    editorEl.dataset.quillWired = '1';
+
+    // @ts-ignore
+    const quill = new Quill(editorEl, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ header: [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ color: [] }, { background: [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          [{ align: [] }],
+          ['link', 'image'],
+          ['clean'],
+        ],
+      },
+    });
+
+    quill.on('text-change', () => {
+      textarea.value = editorEl.querySelector('.ql-editor')?.innerHTML ?? '';
+    });
+
+    // Keep hidden textarea in sync at submit time too, in case text-change
+    // missed the very last keystroke before a fast Enter-to-submit.
+    const form = textarea.closest('form');
+    form?.addEventListener('submit', () => {
+      textarea.value = editorEl.querySelector('.ql-editor')?.innerHTML ?? '';
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRte);
+  } else {
+    initRte();
+  }
+</script>

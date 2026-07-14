@@ -1,0 +1,85 @@
+---
+// Reusable pagination (Fondasi UI — Batch 3A, `components/shared/` per
+// ARCHITECTURE.md §3 so both public list pages and admin DataTable can use
+// it). Renders PowerAdmin's native `.users-pagination` + Bootstrap
+// `.pagination.pagination-sm` markup — no new styles.
+//
+// Usage:
+//   <Pagination page={page} totalPages={totalPages} total={count} perPage={perPage}
+//     basePath="/admin/destinations" searchParams={Astro.url.searchParams} itemLabel="destinasi" />
+
+export interface Props {
+  page: number;
+  totalPages: number;
+  /** Total row count, used for the "Showing X-Y of Z" label. Omit to hide the label. */
+  total?: number;
+  perPage?: number;
+  basePath: string;
+  /** Current URLSearchParams — every param except `page` is preserved across page links. */
+  searchParams?: URLSearchParams;
+  itemLabel?: string;
+}
+
+const { page, totalPages, total, perPage, basePath, searchParams, itemLabel = 'data' } = Astro.props;
+
+function hrefFor(targetPage: number): string {
+  const params = new URLSearchParams(searchParams?.toString() ?? '');
+  params.set('page', String(targetPage));
+  return `${basePath}?${params.toString()}`;
+}
+
+// Build a compact page list: 1 ... (page-1) page (page+1) ... totalPages
+function buildPages(): (number | '...')[] {
+  const pages: (number | '...')[] = [];
+  const add = (p: number) => pages.push(p);
+  const windowSize = 1;
+
+  add(1);
+  if (page - windowSize > 2) pages.push('...');
+  for (let p = Math.max(2, page - windowSize); p <= Math.min(totalPages - 1, page + windowSize); p++) {
+    add(p);
+  }
+  if (page + windowSize < totalPages - 1) pages.push('...');
+  if (totalPages > 1) add(totalPages);
+
+  return pages;
+}
+
+const pages = buildPages();
+
+const from = total !== undefined && perPage ? (page - 1) * perPage + 1 : null;
+const to = total !== undefined && perPage ? Math.min(page * perPage, total) : null;
+---
+
+{totalPages > 1 && (
+  <div class="users-pagination">
+    {total !== undefined && from !== null && to !== null && (
+      <div class="users-pagination-info">
+        Menampilkan <strong>{from}-{to}</strong> dari <strong>{total}</strong> {itemLabel}
+      </div>
+    )}
+    <nav aria-label="Pagination">
+      <ul class="pagination pagination-sm mb-0">
+        <li class={`page-item ${page <= 1 ? 'disabled' : ''}`}>
+          <a class="page-link" href={page > 1 ? hrefFor(page - 1) : '#'} aria-label="Sebelumnya">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+        {pages.map((p) =>
+          p === '...' ? (
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+          ) : (
+            <li class={`page-item ${p === page ? 'active' : ''}`}>
+              <a class="page-link" href={hrefFor(p)}>{p}</a>
+            </li>
+          )
+        )}
+        <li class={`page-item ${page >= totalPages ? 'disabled' : ''}`}>
+          <a class="page-link" href={page < totalPages ? hrefFor(page + 1) : '#'} aria-label="Berikutnya">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+)}

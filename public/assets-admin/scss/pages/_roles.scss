@@ -1,0 +1,326 @@
+/*--------------------------------------------------------------
+# Roles & Permissions Page
+--------------------------------------------------------------*/
+
+.page-roles {
+
+  /* Page Header */
+  .roles-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .roles-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin-bottom: 2px;
+  }
+
+  /* Role Cards Grid */
+  .roles-grid {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .roles-card {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: var(--spacing-md);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+  }
+
+  .roles-card:hover {
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .roles-card.active {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color), transparent 75%);
+  }
+
+  .roles-card-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: 1.125rem;
+  }
+
+  .roles-card-icon.danger {
+    background: var(--danger-color-light);
+    color: var(--danger-color);
+  }
+
+  .roles-card-icon.warning {
+    background: var(--warning-color-light);
+    color: var(--warning-color);
+  }
+
+  .roles-card-icon.info {
+    background: var(--info-color-light);
+    color: var(--info-color);
+  }
+
+  .roles-card-icon.accent {
+    background: color-mix(in srgb, var(--accent-color), transparent 88%);
+    color: var(--accent-color);
+  }
+
+  .roles-card-icon.muted {
+    background: var(--background-color);
+    color: var(--muted-color);
+  }
+
+  .roles-card-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--heading-color);
+  }
+
+  .roles-card.active .roles-card-name {
+    color: var(--accent-color);
+  }
+
+  .roles-card-count {
+    font-size: 0.6875rem;
+    color: var(--muted-color);
+  }
+
+  @media (max-width: 575px) {
+    .roles-grid {
+      gap: var(--spacing-sm);
+    }
+
+    .roles-card {
+      min-width: 110px;
+      padding: var(--spacing-sm);
+    }
+  }
+
+  /* Section Headers */
+  .roles-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .roles-section-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+  }
+
+  .roles-section-icon.danger {
+    background: var(--danger-color-light);
+    color: var(--danger-color);
+  }
+
+  .roles-section-icon.accent {
+    background: color-mix(in srgb, var(--accent-color), transparent 88%);
+    color: var(--accent-color);
+  }
+
+  .roles-section-icon.success {
+    background: var(--success-color-light);
+    color: var(--success-color);
+  }
+
+  .roles-section-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin: 0;
+  }
+
+  .roles-section-desc {
+    font-size: 0.75rem;
+    color: var(--muted-color);
+    margin: 0;
+  }
+
+  /* Permissions Table */
+  .roles-permissions-table {
+    margin-bottom: 0;
+    font-size: 0.8125rem;
+
+    th {
+      font-weight: 700;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted-color);
+      border-bottom-width: 2px;
+      padding: 10px 12px;
+    }
+
+    td {
+      vertical-align: middle;
+      padding: 10px 12px;
+      color: var(--default-color);
+    }
+
+    .form-check-input {
+      cursor: pointer;
+      width: 1rem;
+      height: 1rem;
+
+      &:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+      }
+    }
+  }
+
+  .roles-group-row {
+    td {
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--heading-color);
+      background: var(--background-color);
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+  }
+
+  /* Role Info List */
+  .roles-info-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .roles-info-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .roles-info-list li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .roles-info-list li:first-child {
+    padding-top: 0;
+  }
+
+  .roles-info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-color);
+    min-width: 90px;
+  }
+
+  .roles-info-value {
+    font-size: 0.8125rem;
+    color: var(--heading-color);
+    text-align: right;
+  }
+
+  /* Users List */
+  .roles-user-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    background: color-mix(in srgb, var(--accent-color), transparent 88%);
+    border-radius: var(--radius-full);
+  }
+
+  .roles-users-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .roles-user-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .roles-user-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .roles-user-item:first-child {
+    padding-top: 0;
+  }
+
+  .roles-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .roles-user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .roles-user-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .roles-user-email {
+    font-size: 0.6875rem;
+    color: var(--muted-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .roles-user-remove {
+    color: var(--muted-color);
+    padding: 4px;
+    line-height: 1;
+    font-size: 0.75rem;
+    transition: color var(--transition-fast);
+  }
+
+  .roles-user-remove:hover {
+    color: var(--danger-color);
+  }
+}

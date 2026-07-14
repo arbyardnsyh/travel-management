@@ -1,0 +1,176 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import Breadcrumb from '@/components/user/Breadcrumb.astro';
+import TourCard from '@/components/user/TourCard.astro';
+import Pagination from '@/components/user/Pagination.astro';
+import { listTours } from '@/services';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
+const q = url.searchParams.get('q') ?? '';
+
+const { data: tours, totalPages } = await listTours(supabase, {
+  status: 'published',
+  q: q || undefined,
+  page,
+  perPage: 8,
+});
+
+// "Featured Hero Tour" showcase — highest-priced published tour stands in for
+// the template's hand-picked "Editor's Choice" (no such flag exists on `tours`).
+const { data: allPublished } = await listTours(supabase, { status: 'published', perPage: 100 });
+const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
+---
+
+<PublicLayout title="Tours" description="Temukan paket tour terbaik untuk petualangan Anda berikutnya.">
+  <Breadcrumb title="Tours" current="Tours" subtitle="Pengalaman perjalanan yang dirancang untuk mengubah setiap perjalanan menjadi cerita tak terlupakan." />
+
+  <section id="travel-tours" class="travel-tours section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center mb-5">
+          <h2 class="hero-title">Discover Your Next Adventure</h2>
+          <p class="hero-description">Pengalaman perjalanan pilihan yang mengubah setiap perjalanan menjadi cerita tak terlupakan.</p>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="row justify-content-center mb-5">
+        <div class="col-lg-10">
+          <div class="search-container">
+            <form method="get" class="search-bar">
+              <input type="text" name="q" class="form-control" placeholder="Mau ke mana?" value={q} />
+              <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
+            </form>
+            <!-- Category taxonomy doesn't exist on `tours` in the schema; pills are
+                 kept for visual parity but are non-functional (no data to filter by). -->
+            <div class="filter-pills">
+              <button class="filter-pill active" type="button">All Tours</button>
+              <button class="filter-pill" type="button">Adventure</button>
+              <button class="filter-pill" type="button">Luxury</button>
+              <button class="filter-pill" type="button">Cultural</button>
+              <button class="filter-pill" type="button">Family</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Hero Tour -->
+      {featured && (
+        <div class="row mb-5">
+          <div class="col-12">
+            <div class="featured-hero-tour">
+              <div class="featured-image">
+                <img src={publicStorageUrl(supabase, featured.thumbnail) || '/assets-user/img/travel/showcase-8.webp'} alt={featured.title} class="img-fluid" />
+              </div>
+              <div class="featured-content">
+                <div class="featured-badge">Editor's Choice</div>
+                <h3>{featured.title}</h3>
+                {featured.description && <p>{featured.description.slice(0, 140)}{featured.description.length > 140 ? '…' : ''}</p>}
+                <div class="featured-meta">
+                  {featured.duration && <span class="duration">{featured.duration}</span>}
+                  {featured.quota != null && <span class="group-size">Max {featured.quota} People</span>}
+                </div>
+                <div class="featured-price">
+                  <span class="from">From</span>
+                  <span class="amount">{formatCurrency(featured.price)}</span>
+                </div>
+                <div class="featured-actions">
+                  <a href={`/tours/${featured.slug}`} class="btn btn-primary">Explore This Journey</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <!-- Quick Categories: illustrative only — `tours` has no category taxonomy in the schema. -->
+      <div class="row mb-5">
+        <div class="col-12">
+          <h3 class="section-subtitle">Explore by Interest</h3>
+          <div class="categories-grid">
+            <div class="category-item">
+              <div class="category-visual"><img src="/assets-user/img/travel/misc-3.webp" alt="Mountain Adventures" class="img-fluid" /></div>
+              <h5>Mountain Adventures</h5>
+            </div>
+            <div class="category-item">
+              <div class="category-visual"><img src="/assets-user/img/travel/misc-7.webp" alt="Cultural Heritage" class="img-fluid" /></div>
+              <h5>Cultural Heritage</h5>
+            </div>
+            <div class="category-item">
+              <div class="category-visual"><img src="/assets-user/img/travel/misc-11.webp" alt="Coastal Escapes" class="img-fluid" /></div>
+              <h5>Coastal Escapes</h5>
+            </div>
+            <div class="category-item">
+              <div class="category-visual"><img src="/assets-user/img/travel/misc-15.webp" alt="Wildlife Safari" class="img-fluid" /></div>
+              <h5>Wildlife Safari</h5>
+            </div>
+            <div class="category-item">
+              <div class="category-visual"><img src="/assets-user/img/travel/misc-2.webp" alt="Urban Explorer" class="img-fluid" /></div>
+              <h5>Urban Explorer</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-5">
+        <div class="col-12">
+          <div class="tours-header">
+            <h3 class="section-subtitle">All Journeys</h3>
+          </div>
+
+          <div class="tours-grid">
+            {tours.length === 0 && (
+              <p class="text-center text-muted py-5">Tidak ada tour ditemukan.</p>
+            )}
+            {tours.map((t) => <TourCard tour={t} />)}
+          </div>
+        </div>
+      </div>
+
+      <!-- Limited-Time Offers: no promo/discount table in the schema; kept static for visual parity. -->
+      <div class="row mb-5">
+        <div class="col-12">
+          <h3 class="section-subtitle">Limited-Time Offers</h3>
+          <div class="offers-container">
+            <div class="offer-card">
+              <div class="offer-image"><img src="/assets-user/img/travel/showcase-12.webp" alt="Early Bird Special" class="img-fluid" /></div>
+              <div class="offer-content">
+                <div class="offer-tag">Early Bird</div>
+                <h4>Hubungi Kami untuk Penawaran Spesial</h4>
+                <p>Tanyakan promo dan penawaran terbaru untuk keberangkatan musim ini.</p>
+                <a href="/contact" class="btn btn-accent">Contact Us</a>
+              </div>
+            </div>
+            <div class="offer-card">
+              <div class="offer-image"><img src="/assets-user/img/travel/showcase-6.webp" alt="Last Minute Deal" class="img-fluid" /></div>
+              <div class="offer-content">
+                <div class="offer-tag">Last Minute</div>
+                <h4>Tour Pilihan Tersedia</h4>
+                <p>Lihat ketersediaan slot dan pesan sebelum kehabisan tempat.</p>
+                <a href="/tours" class="btn btn-accent">Lihat Semua Tour</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <div class="consultation-cta">
+            <h3>Can't Find What You're Looking For?</h3>
+            <p>Tim travel designer kami siap merancang perjalanan khusus sesuai preferensi, jadwal, dan impian Anda.</p>
+            <div class="cta-actions">
+              <a href="/contact" class="btn btn-primary">Speak with an Expert</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Pagination currentPage={page} totalPages={totalPages} basePath="/tours" searchParams={url.searchParams} />
+</PublicLayout>

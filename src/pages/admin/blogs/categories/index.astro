@@ -1,0 +1,97 @@
+---
+// Batch 3A-6 — Blog Categories list. Mirrors /admin/faq/index.astro's
+// search+sort+pagination shell (no soft-delete trash link — see
+// blog-category.service.ts header for why).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listBlogCategoriesPaginated } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const sort = searchParams.get('sort') ?? 'name';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'asc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: categories, count, totalPages } = await listBlogCategoriesPaginated(supabase, {
+  q: q || undefined,
+  page,
+  perPage,
+});
+
+const sorted = [...categories].sort((a, b) => {
+  const cmp = sort === 'slug' ? a.slug.localeCompare(b.slug) : a.name.localeCompare(b.name);
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Kategori Blog">
+  <PageHeader title="Kategori Blog" crumbs={[{ label: 'Blog' }, { label: 'Categories' }]}>
+    <a href="/admin/blogs/categories/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah Kategori
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'name', label: 'Nama', sortable: true },
+      { key: 'slug', label: 'Slug', sortable: true },
+    ]}
+    basePath="/admin/blogs/categories"
+    searchParams={searchParams}
+    searchPlaceholder="Cari kategori..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="kategori"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-tags"
+    emptyTitle={q ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
+    emptyText={q ? `Tidak ada kategori yang cocok dengan "${q}".` : 'Mulai dengan menambahkan kategori blog pertama Anda.'}
+  >
+    {sorted.map((category) => (
+      <tr>
+        <td class="fw-semibold">{category.name}</td>
+        <td class="text-muted">{category.slug}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/blogs/categories/${category.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/blogs/categories/${category.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {user?.role === 'admin' && (
+              <button
+                type="button"
+                class="users-action-btn danger"
+                title="Hapus"
+                onclick={`openDeleteModal({ action: '/api/admin/blogs/categories/${category.id}', label: '${category.name.replace(/'/g, "\\'")}' })`}
+              >
+                <i class="bi bi-trash3"></i>
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

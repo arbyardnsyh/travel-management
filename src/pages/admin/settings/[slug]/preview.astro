@@ -1,0 +1,58 @@
+---
+// Batch 3A-7 — CMS Page preview. A read-only rendering of the page exactly
+// as it appears publicly, reachable regardless of `status` (draft pages
+// aren't shown on the public site yet, but staff can still preview them
+// here) — mirrors src/pages/admin/blogs/[id]/preview.astro from Batch 3A-6.
+// Kept as its own /admin page instead of touching the public frontend
+// (src/pages/about.astro etc.), per the master prompt's "Jangan mengubah
+// Frontend Publik". Still sits behind the /admin auth guard in
+// src/middleware.ts, so it isn't publicly reachable.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import { getPageBySlug } from '@/services';
+
+const ALLOWED_SLUGS = ['about', 'privacy', 'terms'] as const;
+const PAGE_TITLES: Record<string, string> = { about: 'About', privacy: 'Privacy', terms: 'Terms' };
+
+const supabase = Astro.locals.supabase;
+const { slug } = Astro.params;
+
+if (!slug || !ALLOWED_SLUGS.includes(slug as (typeof ALLOWED_SLUGS)[number])) {
+  return Astro.redirect('/admin/settings?toast=' + encodeURIComponent('Halaman tidak dikenal.') + '&toastType=error');
+}
+
+const page = await getPageBySlug(supabase, slug);
+if (!page) {
+  return Astro.redirect(
+    `/admin/settings/${slug}?toast=${encodeURIComponent('Halaman belum memiliki konten tersimpan.')}&toastType=error`
+  );
+}
+
+const pageLabel = PAGE_TITLES[slug];
+const statusLabel = page.status.charAt(0).toUpperCase() + page.status.slice(1);
+---
+
+<AdminLayout title={`Preview — ${pageLabel}`}>
+  <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-eye"></i>
+    <div>
+      Ini adalah pratinjau internal (hanya untuk admin/editor) — halaman publik hanya menampilkan konten yang
+      berstatus <strong>Published</strong>.
+    </div>
+    <StatusBadge status={page.status} label={statusLabel} class="ms-auto" />
+  </div>
+
+  <article class="card">
+    <div class="card-body">
+      <h1 class="h3 mb-2">{page.title}</h1>
+      <div class="text-muted small mb-4">Slug: /{page.slug}</div>
+      <div class="blog-content-preview" set:html={page.content || '<span class="text-muted">Belum ada konten.</span>'} />
+    </div>
+  </article>
+
+  <div class="mt-4">
+    <a href={`/admin/settings/${slug}`} class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali ke Edit
+    </a>
+  </div>
+</AdminLayout>

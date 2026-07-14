@@ -1,0 +1,56 @@
+---
+// Batch 3A-6 — Blog Article preview. A read-only rendering of the article
+// exactly as it will appear publicly, but reachable for ANY status (draft/
+// published/archived) since the public route
+// (src/pages/blog/[slug].astro) redirects away from anything that isn't
+// published. Deliberately kept as its own /admin page instead of touching
+// the public frontend, per the master prompt's "Jangan mengubah Frontend
+// Publik". This page still sits behind the `/admin` auth guard in
+// src/middleware.ts, so it isn't publicly reachable.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import { getBlogById } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const blog = id ? await getBlogById(supabase, id) : null;
+if (!blog) {
+  return Astro.redirect('/admin/blogs?toast=' + encodeURIComponent('Artikel tidak ditemukan.') + '&toastType=error');
+}
+
+const statusLabel = blog.status.charAt(0).toUpperCase() + blog.status.slice(1);
+---
+
+<AdminLayout title={`Preview — ${blog.title}`}>
+  <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-eye"></i>
+    <div>
+      Ini adalah pratinjau internal (hanya untuk admin/editor) — tampilan publik hanya menampilkan artikel berstatus
+      <strong>Published</strong>.
+    </div>
+    <StatusBadge status={blog.status} label={statusLabel} class="ms-auto" />
+  </div>
+
+  <article class="card">
+    {blog.thumbnail && (
+      <img src={publicStorageUrl(supabase, blog.thumbnail)} alt={blog.title} class="w-100" style="max-height:420px;object-fit:cover;" />
+    )}
+    <div class="card-body">
+      {blog.category && <span class="badge bg-primary-subtle text-primary mb-2">{blog.category.name}</span>}
+      <h1 class="h3 mb-2">{blog.title}</h1>
+      <div class="text-muted small mb-4">
+        {blog.author && <span>Oleh {blog.author} · </span>}
+        {blog.published_at ? formatDate(blog.published_at, true) : 'Belum dijadwalkan terbit'}
+      </div>
+      <div class="blog-content-preview" set:html={blog.content || '<span class="text-muted">Belum ada konten.</span>'} />
+    </div>
+  </article>
+
+  <div class="mt-4">
+    <a href={`/admin/blogs/${blog.id}`} class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali ke Detail
+    </a>
+  </div>
+</AdminLayout>

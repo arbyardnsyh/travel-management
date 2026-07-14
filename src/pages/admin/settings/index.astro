@@ -1,0 +1,269 @@
+---
+// Batch 3A-7 — Website Settings (`/admin/settings`). Single-row form over
+// `public.settings` (mirrors the FAQ/Blog edit-form pattern from Batch
+// 3A-4/3A-6, minus list/pagination/sorting/trash since there is only ever
+// one row — see settings.service.ts).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import { getSettings, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+import type { UserProfile } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user as UserProfile | null;
+const isAdmin = user?.role === 'admin';
+
+const settings = await getSettings(supabase);
+const logs = await listActivityLogs(supabase, { entity: 'settings', perPage: 8 });
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+---
+
+<AdminLayout title="Website Settings">
+  <div class="page-settings">
+    <PageHeader title="Website Settings" crumbs={[{ label: 'Website' }, { label: 'Settings' }]} />
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    {!isAdmin && (
+      <div class="alert alert-warning d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock"></i>
+        <div>
+          Pengaturan situs bersifat sensitif (dipakai di seluruh halaman publik) dan hanya dapat diubah oleh role
+          <strong> Admin</strong>. Anda dapat melihat nilai saat ini, tetapi form di bawah dinonaktifkan.
+        </div>
+      </div>
+    )}
+
+    <form method="post" action="/api/admin/settings" id="settingsForm">
+      <input type="hidden" name="_method" value="PUT" />
+      <fieldset disabled={!isAdmin}>
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon accent"><i class="bi bi-globe"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Informasi Umum</h6>
+                    <p class="settings-section-desc">Nama website dan identitas dasar.</p>
+                  </div>
+                </div>
+                <FormField
+                  label="Website Name"
+                  name="website_name"
+                  value={settings?.website_name}
+                  required
+                  error={fieldError('website_name')}
+                />
+              </div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon warning"><i class="bi bi-image"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Hero Section</h6>
+                    <p class="settings-section-desc">Ditampilkan di bagian atas halaman beranda publik.</p>
+                  </div>
+                </div>
+                <FormField
+                  label="Hero Title"
+                  name="hero_title"
+                  value={settings?.hero_title ?? ''}
+                  error={fieldError('hero_title')}
+                />
+                <FormField
+                  label="Hero Subtitle"
+                  name="hero_subtitle"
+                  as="textarea"
+                  rows={3}
+                  value={settings?.hero_subtitle ?? ''}
+                  error={fieldError('hero_subtitle')}
+                />
+                <ImageUploader
+                  name="hero_image"
+                  label="Hero Image"
+                  folder="hero"
+                  value={settings?.hero_image}
+                  error={fieldError('hero_image')}
+                />
+              </div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon info"><i class="bi bi-telephone"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Kontak</h6>
+                    <p class="settings-section-desc">Ditampilkan di Footer dan halaman Contact publik.</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <FormField label="Phone" name="phone" value={settings?.phone ?? ''} error={fieldError('phone')} />
+                  </div>
+                  <div class="col-md-6">
+                    <FormField
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={settings?.email ?? ''}
+                      error={fieldError('email')}
+                    />
+                  </div>
+                </div>
+                <FormField
+                  label="Address"
+                  name="address"
+                  as="textarea"
+                  rows={2}
+                  value={settings?.address ?? ''}
+                  error={fieldError('address')}
+                />
+              </div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon success"><i class="bi bi-share"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Social Media</h6>
+                    <p class="settings-section-desc">Tautan ikon sosial di Footer publik.</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <FormField
+                      label="Facebook"
+                      name="facebook"
+                      placeholder="https://facebook.com/..."
+                      value={settings?.facebook ?? ''}
+                      error={fieldError('facebook')}
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <FormField
+                      label="Instagram"
+                      name="instagram"
+                      placeholder="https://instagram.com/..."
+                      value={settings?.instagram ?? ''}
+                      error={fieldError('instagram')}
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <FormField
+                      label="Youtube"
+                      name="youtube"
+                      placeholder="https://youtube.com/..."
+                      value={settings?.youtube ?? ''}
+                      error={fieldError('youtube')}
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <FormField
+                      label="WhatsApp"
+                      name="whatsapp"
+                      placeholder="62812xxxxxxx"
+                      value={settings?.whatsapp ?? ''}
+                      error={fieldError('whatsapp')}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+              </div>
+              <div class="card-body p-0">
+                {logs.data.length === 0 ? (
+                  <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+                ) : (
+                  <ul class="list-group list-group-flush">
+                    {logs.data.map((log) => (
+                      <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                          <div class="fw-medium">{log.description ?? log.action}</div>
+                          <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                        </div>
+                        <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon accent"><i class="bi bi-badge-tm"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Logo</h6>
+                  </div>
+                </div>
+                <ImageUploader name="logo" label="Logo" folder="logo" value={settings?.logo} error={fieldError('logo')} />
+              </div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="card-body">
+                <div class="settings-section-header">
+                  <div class="settings-section-icon warning"><i class="bi bi-star"></i></div>
+                  <div>
+                    <h6 class="settings-section-title">Favicon</h6>
+                  </div>
+                </div>
+                <!-- Reuses the "logo" storage folder (both are brand-identity
+                     assets) — IMAGE_FOLDERS (Foundation UI, Batch 3A-1) has
+                     no dedicated "favicon" entry and that list isn't part of
+                     this batch's scope to extend. -->
+                <ImageUploader
+                  name="favicon"
+                  label="Favicon"
+                  folder="logo"
+                  value={settings?.favicon}
+                  error={fieldError('favicon')}
+                />
+              </div>
+            </div>
+
+            {isAdmin && (
+              <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+                <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+              </button>
+            )}
+          </div>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('settingsForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

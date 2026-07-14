@@ -1,0 +1,175 @@
+---
+// Batch 3A-4 — Testimonials list (mirrors /admin/gallery/index.astro
+// pattern). Testimonials originate from the public site (`/testimonials`
+// submit form) — admin has no Create button here, only moderates:
+// approve/unapprove, edit, soft delete/restore/permanent delete.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listTestimonials } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+import { MODERATION_STATUSES } from '@/lib/constants';
+import type { ModerationStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as ModerationStatus | null) ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: testimonials, count, totalPages } = await listTestimonials(supabase, {
+  q: q || undefined,
+  status,
+  page,
+  perPage,
+});
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/gallery (service always orders by
+// created_at desc under the hood).
+const sorted = [...testimonials].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'name') cmp = a.name.localeCompare(b.name);
+  else if (sort === 'rating') cmp = a.rating - b.rating;
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function filterHref(next: Partial<{ status: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : status;
+  if (nextStatus) params.set('status', nextStatus);
+  return `/admin/testimonials?${params.toString()}`;
+}
+
+function stars(rating: number): string {
+  const full = Math.round(rating);
+  return '★★★★★☆☆☆☆☆'.slice(5 - full, 10 - full);
+}
+---
+
+<AdminLayout title="Testimonials">
+  <PageHeader title="Testimonials" crumbs={[{ label: 'Konten' }, { label: 'Testimonials' }]}>
+    <a href="/admin/testimonials/trash" class="btn btn-outline-secondary">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'name', label: 'Nama', sortable: true },
+      { key: 'rating', label: 'Rating', sortable: true },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'created_at', label: 'Dikirim', sortable: true },
+    ]}
+    basePath="/admin/testimonials"
+    searchParams={searchParams}
+    searchPlaceholder="Cari nama..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="testimoni"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-chat-quote"
+    emptyTitle={q ? 'Testimoni tidak ditemukan' : 'Belum ada testimoni'}
+    emptyText={q ? `Tidak ada testimoni yang cocok dengan "${q}".` : 'Testimoni baru dari pengunjung situs akan muncul di sini.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? statusLabel(status) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          {MODERATION_STATUSES.map((s) => (
+            <li><a class="dropdown-item" href={filterHref({ status: s })}>{statusLabel(s)}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((testimonial) => (
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {testimonial.photo ? (
+              <img
+                src={publicStorageUrl(supabase, testimonial.photo)}
+                alt={testimonial.name}
+                width="40"
+                height="40"
+                class="rounded-circle"
+                style="object-fit:cover;"
+              />
+            ) : (
+              <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                <i class="bi bi-person text-secondary"></i>
+              </div>
+            )}
+            <div>
+              <div class="fw-semibold">{testimonial.name}</div>
+              {testimonial.job && <div class="text-muted small">{testimonial.job}</div>}
+            </div>
+          </div>
+        </td>
+        <td><span class="text-warning">{stars(testimonial.rating)}</span> <span class="text-muted small">({testimonial.rating})</span></td>
+        <td><StatusBadge status={testimonial.status} label={statusLabel(testimonial.status)} /></td>
+        <td class="users-meta">{formatDate(testimonial.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/testimonials/${testimonial.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/testimonials/${testimonial.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {testimonial.status === 'approved' ? (
+              <form method="post" action={`/api/admin/testimonials/${testimonial.id}/unapprove`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Batalkan Persetujuan">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </form>
+            ) : (
+              <form method="post" action={`/api/admin/testimonials/${testimonial.id}/approve`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Setujui">
+                  <i class="bi bi-check-circle"></i>
+                </button>
+              </form>
+            )}
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/testimonials/${testimonial.id}', label: '${testimonial.name.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

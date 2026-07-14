@@ -1,0 +1,345 @@
+/*--------------------------------------------------------------
+# Contact Page
+--------------------------------------------------------------*/
+.page-contact {
+
+  /* ---- Contact Info Cards ---- */
+  .contact-info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+  }
+
+  .contact-info-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .contact-info-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .contact-info-text {
+    font-size: 0.8125rem;
+    color: var(--muted-color);
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+
+  /* ---- Contact Form Card ---- */
+  .contact-form-card {
+    border: 1px solid var(--border-color-light);
+
+    .card-body {
+      padding: var(--spacing-xl);
+    }
+  }
+
+  .contact-form-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color-light);
+  }
+
+  .contact-form-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--accent-color), transparent 88%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: var(--accent-color);
+  }
+
+  .contact-form-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .contact-form-subtitle {
+    font-size: 0.8125rem;
+    color: var(--muted-color);
+    margin-bottom: 0;
+  }
+
+  /* Contact Form */
+  .contact-form {
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--heading-color);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .form-control {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      font-size: 0.875rem;
+      padding: 0.625rem 0.875rem;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+      &:focus {
+        border-color: var(--input-focus-border);
+        box-shadow: 0 0 0 3px var(--input-focus-ring);
+      }
+    }
+
+    .input-icon-wrapper .form-control {
+      padding-left: 40px;
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 120px;
+    }
+  }
+
+  /* Form inputs with icon */
+  .input-icon-wrapper {
+    position: relative;
+
+    > i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      color: var(--light-color);
+      z-index: 1;
+      pointer-events: none;
+    }
+  }
+
+  /* Submit & Reset buttons */
+  .contact-submit-btn {
+    background: var(--accent-color);
+    color: var(--contrast-color);
+    padding: 0.625rem 1.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: var(--radius-md);
+    border: none;
+    transition: background var(--transition-base), box-shadow var(--transition-base);
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-color), black 12%);
+      color: var(--contrast-color);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-color), transparent 50%);
+    }
+  }
+
+  .contact-reset-btn {
+    background: transparent;
+    color: var(--muted-color);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-base);
+
+    &:hover {
+      color: var(--heading-color);
+      border-color: var(--border-color-dark);
+      background: var(--background-color);
+    }
+  }
+
+  /* Feedback messages */
+  .contact-form-feedback {
+    display: none;
+    padding: 0.875rem var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-sm);
+
+    &.error-message {
+      color: var(--contrast-color);
+      background: var(--danger-color);
+      text-align: left;
+    }
+
+    &.sent-message {
+      color: var(--contrast-color);
+      background: var(--success-color);
+      text-align: center;
+    }
+
+    &.loading {
+      background: var(--surface-color);
+      text-align: center;
+      color: var(--default-color);
+
+      &::before {
+        content: "";
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin: 0 8px -4px 0;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--accent-color);
+        border-radius: var(--radius-full);
+        animation: contact-spin 0.8s linear infinite;
+      }
+    }
+  }
+
+  /* ---- Map Card ---- */
+  .contact-map-card {
+    border: 1px solid var(--border-color-light);
+    overflow: hidden;
+
+    iframe {
+      display: block;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+  }
+
+  .contact-map-header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--heading-color);
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color-light);
+
+    i {
+      color: var(--accent-color);
+      font-size: 16px;
+    }
+  }
+
+  /* ---- Office Info Card ---- */
+  .contact-office-card {
+    border: 1px solid var(--border-color-light);
+
+    .card-body {
+      padding: var(--spacing-lg);
+    }
+  }
+
+  .contact-office-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+
+    i {
+      color: var(--accent-color);
+      font-size: 18px;
+    }
+  }
+
+  .contact-office-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      display: flex;
+      gap: var(--spacing-md);
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px dashed var(--border-color-light);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .contact-office-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    min-width: 60px;
+    padding-top: 2px;
+  }
+
+  .contact-office-value {
+    font-size: 0.8125rem;
+    color: var(--default-color);
+
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  /* Quick Links */
+  .contact-quick-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .contact-quick-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--default-color);
+    background: color-mix(in srgb, var(--accent-color), transparent 94%);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all var(--transition-base);
+
+    i {
+      font-size: 15px;
+      color: var(--accent-color);
+    }
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-color), transparent 85%);
+      color: var(--accent-color);
+    }
+  }
+}
+
+@keyframes contact-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

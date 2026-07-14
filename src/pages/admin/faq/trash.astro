@@ -1,0 +1,101 @@
+---
+// Batch 3A-4 — FAQ trash (mirrors /admin/gallery/trash.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listFaqs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: faqs, count, totalPages } = await listFaqs(supabase, {
+  q: q || undefined,
+  onlyDeleted: true,
+  page,
+  perPage,
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Arsip FAQ">
+  <PageHeader title="Arsip FAQ" crumbs={[{ label: 'Konten' }, { label: 'FAQ', href: '/admin/faq' }, { label: 'Arsip' }]}>
+    <a href="/admin/faq" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {faqs.length === 0 && !q ? (
+    <div class="card">
+      <div class="card-body">
+        <EmptyState icon="bi bi-trash3" title="Arsip kosong" text="FAQ yang dihapus akan muncul di sini dan dapat dipulihkan kapan saja." />
+      </div>
+    </div>
+  ) : (
+    <DataTable
+      columns={[
+        { key: 'question', label: 'Pertanyaan' },
+        { key: 'deleted_at', label: 'Diarsipkan' },
+      ]}
+      basePath="/admin/faq/trash"
+      searchParams={searchParams}
+      searchPlaceholder="Cari FAQ diarsipkan..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="FAQ"
+      isEmpty={faqs.length === 0}
+      emptyIcon="bi bi-search"
+      emptyTitle="Tidak ditemukan"
+      emptyText={`Tidak ada FAQ diarsipkan yang cocok dengan "${q}".`}
+      actionsLabel="Aksi"
+    >
+      {faqs.map((faq) => (
+        <tr>
+          <td>
+            <div class="fw-semibold text-muted">{faq.question}</div>
+          </td>
+          <td class="users-meta">{formatDate(faq.deleted_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <form method="post" action={`/api/admin/faq/${faq.id}/restore`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Pulihkan">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/faq/${faq.id}?permanent=1', label: '${faq.question.replace(/'/g, "\\'")} (permanen)' })`}
+                >
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+  )}
+
+  <ConfirmDeleteModal />
+</AdminLayout>

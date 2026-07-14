@@ -1,0 +1,43 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getPageBySlug, getSettings } from '@/services';
+import { formatDate } from '@/utils/format';
+
+const supabase = Astro.locals.supabase;
+const page = await getPageBySlug(supabase, 'terms');
+const settings = await getSettings(supabase);
+---
+
+<PublicLayout title={page?.meta_title || 'Terms of Service'} description={page?.meta_description || 'Syarat dan ketentuan penggunaan layanan TravelTime.'}>
+  <section id="terms-of-service" class="terms-of-service section">
+    <div class="container">
+      <div class="tos-header">
+        <div class="last-updated">Effective Date: {formatDate(page?.updated_at)}</div>
+        <h2>{page?.title || 'Terms of Service'}</h2>
+        <p>Dengan menggunakan layanan kami, Anda menyetujui syarat dan ketentuan berikut.</p>
+      </div>
+
+      <div class="tos-content">
+        {page?.content ? (
+          <div class="content-section" set:html={page.content} />
+        ) : (
+          <div class="content-section">
+            <h3>Konten Belum Tersedia</h3>
+            <p>Syarat &amp; ketentuan belum diisi. Silakan lengkapi melalui dashboard admin.</p>
+          </div>
+        )}
+      </div>
+
+      <div class="tos-contact">
+        <div class="contact-box">
+          <div class="contact-icon"><i class="bi bi-envelope"></i></div>
+          <div class="contact-content">
+            <h4>Questions About Terms?</h4>
+            <p>Jika Anda memiliki pertanyaan tentang syarat &amp; ketentuan ini, silakan hubungi kami.</p>
+            <a href={`mailto:${settings?.email || ''}`} class="contact-link">Contact Support</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

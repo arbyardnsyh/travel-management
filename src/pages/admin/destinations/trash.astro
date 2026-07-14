@@ -1,0 +1,118 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listDestinations } from '@/services';
+import { formatDate, publicStorageUrl } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: destinations, count, totalPages } = await listDestinations(supabase, {
+  q: q || undefined,
+  onlyDeleted: true,
+  page,
+  perPage,
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+---
+
+<AdminLayout title="Arsip Destinations">
+  <PageHeader title="Arsip Destinations" crumbs={[{ label: 'Master Data' }, { label: 'Destinations', href: '/admin/destinations' }, { label: 'Arsip' }]}>
+    <a href="/admin/destinations" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {destinations.length === 0 && !q ? (
+    <div class="card">
+      <div class="card-body">
+        <EmptyState icon="bi bi-trash3" title="Arsip kosong" text="Destinasi yang dihapus akan muncul di sini dan dapat dipulihkan kapan saja." />
+      </div>
+    </div>
+  ) : (
+    <DataTable
+      columns={[
+        { key: 'name', label: 'Destinasi' },
+        { key: 'location', label: 'Lokasi' },
+        { key: 'deleted_at', label: 'Diarsipkan' },
+      ]}
+      basePath="/admin/destinations/trash"
+      searchParams={searchParams}
+      searchPlaceholder="Cari destinasi diarsipkan..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="destinasi"
+      isEmpty={destinations.length === 0}
+      emptyIcon="bi bi-search"
+      emptyTitle="Tidak ditemukan"
+      emptyText={`Tidak ada destinasi diarsipkan yang cocok dengan "${q}".`}
+      actionsLabel="Aksi"
+    >
+      {destinations.map((destination) => (
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {destination.thumbnail ? (
+                <img
+                  src={publicStorageUrl(supabase, destination.thumbnail)}
+                  alt={destination.name}
+                  width="40"
+                  height="40"
+                  class="rounded-2"
+                  style="object-fit:cover;"
+                />
+              ) : (
+                <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                  <i class="bi bi-image text-secondary"></i>
+                </div>
+              )}
+              <div class="fw-semibold text-muted">{destination.name}</div>
+            </div>
+          </td>
+          <td>{destination.location}</td>
+          <td class="users-meta">{formatDate(destination.deleted_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <form method="post" action={`/api/admin/destinations/${destination.id}/restore`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Pulihkan">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/destinations/${destination.id}?permanent=1', label: '${destination.name.replace(/'/g, "\\'")} (permanen)' })`}
+                >
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+  )}
+
+  <ConfirmDeleteModal />
+</AdminLayout>

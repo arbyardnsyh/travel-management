@@ -1,0 +1,130 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Travel Hero Section
+--------------------------------------------------------------*/
+.travel-hero {
+  background: linear-gradient(color-mix(in srgb, var(--background-color), transparent 30%),
+      color-mix(in srgb, var(--background-color), transparent 30%)),
+    url("../img/travel/showcase-1.webp") center center no-repeat;
+  background-size: cover;
+  padding: 120px 0;
+  min-height: 80vh;
+  display: grid;
+  place-content: center;
+
+  .content {
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .lead {
+      font-size: 1.25rem;
+      max-width: 600px;
+    }
+  }
+
+  .btn {
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+
+    &.btn-primary {
+      background-color: var(--accent-color);
+      border: 2px solid var(--accent-color);
+      color: var(--contrast-color);
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    &.btn-outline-light {
+      background-color: transparent;
+      border: 2px solid var(--accent-color);
+      color: var(--accent-color);
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  .booking-form {
+    background-color: color-mix(in srgb, var(--surface-color), transparent 10%);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+
+    label {
+      font-weight: 600;
+      color: var(--heading-color);
+      margin-bottom: 8px;
+    }
+
+    .form-control {
+      border: 1px solid color-mix(in srgb, var(--default-color), transparent 80%);
+      border-radius: 8px;
+      padding: 12px 15px;
+      height: auto;
+      background-color: transparent;
+      color: var(--default-color);
+
+      &:focus {
+        border-color: var(--accent-color);
+        box-shadow: none;
+      }
+
+      &::placeholder {
+        color: color-mix(in srgb, var(--default-color), transparent 50%);
+      }
+    }
+
+    .btn-accent {
+      background-color: var(--accent-color);
+      border: none;
+      color: var(--contrast-color);
+      padding: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+
+      &:hover {
+        background-color: color-mix(in srgb, var(--accent-color), transparent 20%);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  @media (max-width: 992px) {
+    padding: 80px 0;
+
+    .content {
+      h1 {
+        font-size: 2.5rem;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .content {
+      text-align: center;
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .lead {
+        font-size: 1rem;
+      }
+    }
+
+    .d-flex {
+      justify-content: center !important;
+    }
+  }
+}

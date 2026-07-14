@@ -1,0 +1,53 @@
+---
+// Generic "Confirm Delete" modal. Any admin list page renders one instance
+// and triggers it via: openDeleteModal({ action: '/api/admin/xxx/ID', label: 'the item name' })
+export interface Props {
+  id?: string;
+}
+const { id = 'confirmDeleteModal' } = Astro.props;
+---
+
+<div class="modal fade" id={id} tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+          Konfirmasi Hapus
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">
+          Apakah Anda yakin ingin menghapus <strong data-delete-label>item ini</strong>? Tindakan ini
+          tidak dapat dibatalkan.
+        </p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <form method="post" data-delete-form>
+          <input type="hidden" name="_method" value="DELETE" />
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash3 me-1"></i> Hapus
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ id }}>
+  function openDeleteModal({ action, label }) {
+    const modalEl = document.getElementById(id);
+    if (!modalEl) return;
+    const form = modalEl.querySelector('[data-delete-form]');
+    const labelEl = modalEl.querySelector('[data-delete-label]');
+    if (form) form.setAttribute('action', action);
+    if (labelEl && label) labelEl.textContent = label;
+    // @ts-ignore
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+  // Expose globally so any page's inline onclick can call it.
+  window.openDeleteModal = openDeleteModal;
+</script>

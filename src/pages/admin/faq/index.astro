@@ -1,0 +1,226 @@
+---
+// Batch 3A-4 — FAQ list (mirrors /admin/gallery/index.astro pattern).
+// FAQ is a full CRUD module plus a `reorder` bulk action (ARCHITECTURE.md §9
+// exception). Move-up/move-down buttons only operate safely when the full,
+// unfiltered, unpaginated active list is on screen — otherwise a partial
+// reorder call would corrupt sort_order for rows not currently visible. So:
+// perPage is intentionally large (50) and the buttons are hidden whenever a
+// search/status filter or a non-default sort is active (a helper note
+// explains why). This is the most stable reorder approach given the project
+// has no drag-and-drop dependency (no new packages allowed).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listFaqs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import type { ContentStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as ContentStatus | null) ?? undefined;
+const sort = searchParams.get('sort') ?? 'sort_order';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'asc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 50;
+
+const { data: faqs, count, totalPages } = await listFaqs(supabase, {
+  q: q || undefined,
+  status,
+  page,
+  perPage,
+});
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/gallery (service always orders by
+// sort_order asc under the hood).
+const sorted = [...faqs].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'question') cmp = a.question.localeCompare(b.question);
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else if (sort === 'created_at') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  else cmp = a.sort_order - b.sort_order;
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+// Reordering is only safe when we're looking at the complete, default-sorted,
+// unfiltered active list (see header note above).
+const canReorder = !q && !status && sort === 'sort_order' && dir === 'asc' && totalPages <= 1;
+const orderedIds = sorted.map((f) => f.id);
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function filterHref(next: Partial<{ status: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : status;
+  if (nextStatus) params.set('status', nextStatus);
+  return `/admin/faq?${params.toString()}`;
+}
+---
+
+<AdminLayout title="FAQ">
+  <PageHeader title="FAQ" crumbs={[{ label: 'Konten' }, { label: 'FAQ' }]}>
+    <a href="/admin/faq/trash" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+    <a href="/admin/faq/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah FAQ
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {!canReorder && (
+    <div class="alert alert-info d-flex align-items-center gap-2 small">
+      <i class="bi bi-info-circle"></i>
+      Urutan (drag/tombol panah) hanya tersedia saat tampilan tidak difilter/dicari dan diurutkan berdasarkan "Urutan" — reset pencarian &amp; filter untuk mengubah urutan.
+    </div>
+  )}
+
+  <DataTable
+    columns={[
+      { key: 'sort_order', label: 'Urutan', sortable: true, width: '90px' },
+      { key: 'question', label: 'Pertanyaan', sortable: true },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/faq"
+    searchParams={searchParams}
+    searchPlaceholder="Cari pertanyaan..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="FAQ"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-question-circle"
+    emptyTitle={q ? 'FAQ tidak ditemukan' : 'Belum ada FAQ'}
+    emptyText={q ? `Tidak ada FAQ yang cocok dengan "${q}".` : 'Mulai dengan menambahkan pertanyaan pertama Anda.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? statusLabel(status) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          {CONTENT_STATUSES.map((s) => (
+            <li><a class="dropdown-item" href={filterHref({ status: s })}>{statusLabel(s)}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((faq, index) => (
+      <tr data-faq-row data-id={faq.id}>
+        <td>
+          {canReorder ? (
+            <div class="d-flex align-items-center gap-1">
+              <span class="text-muted small">{faq.sort_order}</span>
+              <div class="btn-group btn-group-sm ms-1">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  title="Naikkan"
+                  disabled={index === 0}
+                  data-move="up"
+                  data-id={faq.id}
+                >
+                  <i class="bi bi-arrow-up"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  title="Turunkan"
+                  disabled={index === sorted.length - 1}
+                  data-move="down"
+                  data-id={faq.id}
+                >
+                  <i class="bi bi-arrow-down"></i>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span class="text-muted small">{faq.sort_order}</span>
+          )}
+        </td>
+        <td>
+          <div class="fw-semibold">{faq.question}</div>
+          <div class="text-muted small text-truncate" style="max-width:420px;">{faq.answer}</div>
+        </td>
+        <td><StatusBadge status={faq.status} label={statusLabel(faq.status)} /></td>
+        <td class="users-meta">{formatDate(faq.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/faq/${faq.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/faq/${faq.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/faq/${faq.id}', label: '${faq.question.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script define:vars={{ orderedIds, canReorder }}>
+  if (canReorder) {
+    let currentOrder = [...orderedIds];
+
+    const submitReorder = async (order) => {
+      try {
+        const res = await fetch('/api/admin/faq/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ order }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || 'Gagal mengubah urutan.');
+        window.location.reload();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Gagal mengubah urutan FAQ.');
+      }
+    };
+
+    document.querySelectorAll('[data-move]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const direction = btn.getAttribute('data-move');
+        const index = currentOrder.indexOf(id);
+        if (index === -1) return;
+        const swapWith = direction === 'up' ? index - 1 : index + 1;
+        if (swapWith < 0 || swapWith >= currentOrder.length) return;
+
+        const next = [...currentOrder];
+        [next[index], next[swapWith]] = [next[swapWith], next[index]];
+        currentOrder = next;
+        submitReorder(currentOrder);
+      });
+    });
+  }
+</script>

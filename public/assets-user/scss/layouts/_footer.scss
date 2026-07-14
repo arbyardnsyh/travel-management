@@ -1,0 +1,313 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Global Footer
+--------------------------------------------------------------*/
+.footer {
+  color: var(--default-color);
+  background: var(--background-color);
+  font-size: 14px;
+  padding: 80px 0 0;
+  position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--default-color), transparent 85%);
+
+  .footer-content {
+    .logo {
+      line-height: 1;
+
+      span {
+        color: var(--heading-color);
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        font-family: var(--heading-font);
+      }
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: color-mix(in srgb, var(--default-color), transparent 15%);
+    }
+  }
+
+  .newsletter-form {
+    margin-top: 30px;
+
+    h5 {
+      color: var(--heading-color);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      font-family: var(--heading-font);
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      border-radius: 50px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px color-mix(in srgb, var(--default-color), transparent 90%);
+    }
+
+    input[type="email"] {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      background-color: var(--surface-color);
+      color: var(--default-color);
+      font-size: 14px;
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+      }
+
+      &::placeholder {
+        color: color-mix(in srgb, var(--default-color), transparent 60%);
+      }
+    }
+
+    .btn-subscribe {
+      background-color: var(--accent-color);
+      color: var(--contrast-color);
+      border: none;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: 0.3s;
+
+      &:hover {
+        background-color: color-mix(in srgb, var(--accent-color), black 10%);
+      }
+
+      i {
+        font-size: 16px;
+      }
+    }
+
+    .loading,
+    .error-message,
+    .sent-message {
+      font-size: 13px;
+      margin-top: 8px;
+    }
+  }
+
+  h4 {
+    color: var(--heading-color);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    position: relative;
+    font-family: var(--heading-font);
+
+    &:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -8px;
+      width: 30px;
+      height: 2px;
+      background-color: var(--accent-color);
+    }
+  }
+
+  .footer-links {
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        padding: 8px 0;
+        display: flex;
+        align-items: center;
+        transition: 0.3s;
+
+        &:hover {
+          transform: translateX(5px);
+        }
+      }
+
+      a {
+        color: color-mix(in srgb, var(--default-color), transparent 25%);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        transition: 0.3s;
+
+        &:hover {
+          color: var(--accent-color);
+        }
+
+        i {
+          margin-right: 8px;
+          font-size: 12px;
+          color: var(--accent-color);
+        }
+      }
+    }
+  }
+
+  .footer-contact {
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+
+      .contact-icon {
+        width: 40px;
+        height: 40px;
+        background-color: color-mix(in srgb, var(--accent-color), transparent 90%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        flex-shrink: 0;
+
+        i {
+          color: var(--accent-color);
+          font-size: 16px;
+        }
+      }
+
+      .contact-info {
+        p {
+          margin: 0;
+          color: color-mix(in srgb, var(--default-color), transparent 20%);
+          font-size: 14px;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+
+  .social-links {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+
+    a {
+      width: 42px;
+      height: 42px;
+      background-color: color-mix(in srgb, var(--default-color), transparent 92%);
+      color: color-mix(in srgb, var(--default-color), transparent 30%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: 0.3s;
+      text-decoration: none;
+
+      &:hover {
+        background-color: var(--accent-color);
+        color: var(--contrast-color);
+        transform: translateY(-3px);
+      }
+
+      i {
+        font-size: 16px;
+      }
+    }
+  }
+
+  .footer-bottom {
+    margin-top: 50px;
+    padding: 25px 0;
+    background-color: color-mix(in srgb, var(--default-color), transparent 95%);
+    border-top: 1px solid color-mix(in srgb, var(--default-color), transparent 85%);
+
+    .copyright {
+      p {
+        margin: 0;
+        font-size: 14px;
+        color: color-mix(in srgb, var(--default-color), transparent 20%);
+
+        @media (max-width: 991px) {
+          text-align: center;
+          margin-bottom: 15px;
+        }
+      }
+    }
+
+    .footer-bottom-links {
+      text-align: right;
+      margin-bottom: 8px;
+
+      @media (max-width: 991px) {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      a {
+        color: color-mix(in srgb, var(--default-color), transparent 30%);
+        font-size: 13px;
+        margin-left: 20px;
+        text-decoration: none;
+
+        &:first-child {
+          margin-left: 0;
+        }
+
+        &:hover {
+          color: var(--accent-color);
+        }
+
+        @media (max-width: 991px) {
+          margin: 0 10px;
+        }
+      }
+    }
+
+    .credits {
+      text-align: right;
+      font-size: 13px;
+      color: color-mix(in srgb, var(--default-color), transparent 40%);
+
+      @media (max-width: 991px) {
+        text-align: center;
+      }
+
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 60px 0 0;
+
+    .footer-content {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .footer-links,
+    .footer-contact {
+      margin-bottom: 40px;
+    }
+  }
+}
+
+input[type="text"],
+input[type="email"],
+textarea {
+  color: var(--default-color);
+  background-color: var(--surface-color);
+  font-size: 14px;
+  border-color: color-mix(in srgb, var(--default-color), transparent 80%);
+
+  &:focus {
+    border-color: var(--accent-color);
+  }
+
+  &::placeholder {
+    color: color-mix(in srgb, var(--default-color), transparent 70%);
+  }
+}

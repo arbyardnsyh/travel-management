@@ -1,0 +1,31 @@
+---
+export interface Props {
+  title: string;
+  current: string;
+  subtitle?: string;
+  bgImage?: string;
+  parent?: { label: string; href: string };
+}
+
+const {
+  title,
+  current,
+  subtitle,
+  bgImage = '/assets-user/img/travel/showcase-11.webp',
+  parent,
+} = Astro.props;
+---
+
+<div class="page-title dark-background" style={`background-image: url(${bgImage});`}>
+  <div class="container position-relative">
+    <h1>{title}</h1>
+    {subtitle && <p>{subtitle}</p>}
+    <nav class="breadcrumbs">
+      <ol>
+        <li><a href="/">Home</a></li>
+        {parent && <li><a href={parent.href}>{parent.label}</a></li>}
+        <li class="current">{current}</li>
+      </ol>
+    </nav>
+  </div>
+</div>

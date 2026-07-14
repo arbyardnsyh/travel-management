@@ -1,0 +1,193 @@
+---
+// Batch 3A-7 — CMS Page editor (`/admin/settings/about|privacy|terms`).
+// Mirrors the Blog Article edit-form pattern from Batch 3A-6 (RichTextEditor
+// + activity log sidebar), minus category/thumbnail/author since a static
+// page only has title/content/meta fields (see page.service.ts).
+//
+// File layout note: ARCHITECTURE.md's Batch-3 table sketches this as a
+// single `src/pages/admin/settings/[slug].astro` file. This batch instead
+// follows the `[id]/index.astro` + `[id]/preview.astro` folder pattern that
+// Batch 3A-4/3A-6 already shipped and proved out (see
+// src/pages/admin/faq/[id]/*.astro, src/pages/admin/blogs/[id]/*.astro) —
+// same three URLs (`/admin/settings/about` etc.) end up working identically,
+// this just avoids a same-named file-vs-folder clash once a sibling
+// `preview.astro` is added.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import RichTextEditor from '@/components/admin/RichTextEditor.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import { getPageBySlug, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+
+const ALLOWED_SLUGS = ['about', 'privacy', 'terms'] as const;
+const PAGE_TITLES: Record<string, string> = { about: 'About', privacy: 'Privacy', terms: 'Terms' };
+
+const supabase = Astro.locals.supabase;
+const { slug } = Astro.params;
+
+if (!slug || !ALLOWED_SLUGS.includes(slug as (typeof ALLOWED_SLUGS)[number])) {
+  return Astro.redirect('/admin/settings?toast=' + encodeURIComponent('Halaman tidak dikenal.') + '&toastType=error');
+}
+
+const page = await getPageBySlug(supabase, slug);
+// Defensive fallback in case a seed row is somehow missing — upsertPage()
+// will create it on first save, so the form still needs sensible defaults.
+const pageData = page ?? {
+  id: '',
+  slug,
+  title: PAGE_TITLES[slug],
+  content: '',
+  meta_title: null,
+  meta_description: null,
+  status: 'published' as const,
+  published_at: null,
+  updated_at: '',
+};
+
+const logs = await listActivityLogs(supabase, { entity: 'pages', entityId: pageData.id || undefined, perPage: 8 });
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.filter((s) => s !== 'archived').map((s) => ({
+  value: s,
+  label: s.charAt(0).toUpperCase() + s.slice(1),
+}));
+const pageLabel = PAGE_TITLES[slug];
+---
+
+<AdminLayout title={`Edit ${pageLabel}`}>
+  <div class="page-settings">
+    <PageHeader title={`Edit ${pageLabel}`} crumbs={[{ label: 'Website' }, { label: 'Settings', href: '/admin/settings' }, { label: pageLabel }]}>
+      <a href={`/admin/settings/${slug}/preview`} class="btn btn-outline-secondary me-2" target="_blank">
+        <i class="bi bi-eye me-1"></i> Preview
+      </a>
+      <a href="/admin/settings" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </PageHeader>
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    <form method="post" action={`/api/admin/pages/${slug}`} id="pageForm">
+      <input type="hidden" name="_intent" value="update" />
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Konten Halaman</h5>
+            </div>
+            <div class="card-body">
+              <FormField label="Judul Halaman" name="title" value={pageData.title} required error={fieldError('title')} />
+              <RichTextEditor name="content" label="Konten" value={pageData.content} error={fieldError('content')} />
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">SEO Meta</h5>
+            </div>
+            <div class="card-body">
+              <FormField
+                label="Meta Title"
+                name="meta_title"
+                value={pageData.meta_title ?? ''}
+                error={fieldError('meta_title')}
+              />
+              <FormField
+                label="Meta Description"
+                name="meta_description"
+                as="textarea"
+                rows={3}
+                value={pageData.meta_description ?? ''}
+                error={fieldError('meta_description')}
+              />
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+            </div>
+            <div class="card-body p-0">
+              {logs.data.length === 0 ? (
+                <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+              ) : (
+                <ul class="list-group list-group-flush">
+                  {logs.data.map((log) => (
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-medium">{log.description ?? log.action}</div>
+                        <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                      </div>
+                      <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <h5 class="card-title mb-0">Publikasi</h5>
+              <StatusBadge status={pageData.status} />
+            </div>
+            <div class="card-body">
+              <FormField label="Status" name="status" as="select" options={statusOptions} value={pageData.status} error={fieldError('status')} />
+              <p class="text-muted small mb-3">
+                {pageData.published_at
+                  ? `Terakhir dipublikasikan: ${formatDate(pageData.published_at, true)}`
+                  : 'Belum pernah dipublikasikan.'}
+              </p>
+              <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+                <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+              </button>
+              <button type="button" class="btn btn-outline-success w-100" id="publishBtn">
+                <i class="bi bi-cloud-arrow-up me-1"></i> Publish
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- Separate, minimal form for the one-click Publish action — posts
+         `_intent=publish` so the API route (src/pages/api/admin/pages/[slug].ts)
+         skips full-form validation and just flips status/published_at,
+         logged as its own "status_change" activity entry. -->
+    <form method="post" action={`/api/admin/pages/${slug}`} id="publishForm" class="d-none">
+      <input type="hidden" name="_intent" value="publish" />
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('pageForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+
+  const publishBtn = document.getElementById('publishBtn') as HTMLButtonElement | null;
+  const publishForm = document.getElementById('publishForm') as HTMLFormElement | null;
+  publishBtn?.addEventListener('click', () => {
+    publishBtn.disabled = true;
+    publishBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Mempublikasikan...';
+    publishForm?.submit();
+  });
+</script>

@@ -1,0 +1,120 @@
+---
+// Batch 3A-2 — Tour create form (mirrors /admin/destinations/create.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import { listDestinations } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+
+const { data: destinations } = await listDestinations(supabase, { perPage: 100 });
+const destinationOptions = [
+  { value: '', label: '— Tanpa Destinasi —' },
+  ...destinations.map((d) => ({ value: d.id, label: d.name })),
+];
+---
+
+<AdminLayout title="Tambah Tour">
+  <PageHeader title="Tambah Tour" crumbs={[{ label: 'Master Data' }, { label: 'Tours', href: '/admin/tours' }, { label: 'Tambah' }]}>
+    <a href="/admin/tours" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action="/api/admin/tours" id="tourForm">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Tour</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <FormField label="Judul Tour" name="title" required error={fieldError('title')} />
+              </div>
+              <div class="col-md-4">
+                <FormField label="Slug (opsional)" name="slug" help="Kosongkan untuk membuat otomatis dari judul." error={fieldError('slug')} />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField
+                  label="Destinasi"
+                  name="destination_id"
+                  as="select"
+                  options={destinationOptions}
+                  help="Relasi tour ke destinasi (opsional)."
+                  error={fieldError('destination_id')}
+                />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Harga" name="price" type="number" min={0} required error={fieldError('price')} />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Durasi" name="duration" placeholder="mis. 3 Hari 2 Malam" error={fieldError('duration')} />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <FormField label="Kuota" name="quota" type="number" min={0} value={0} error={fieldError('quota')} />
+              </div>
+            </div>
+            <FormField label="Deskripsi" name="description" as="textarea" rows={6} error={fieldError('description')} />
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value="draft" error={fieldError('status')} />
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="thumbnail" label="Thumbnail" folder="tour" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Tour
+        </button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('tourForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

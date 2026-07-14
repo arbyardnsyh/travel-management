@@ -1,0 +1,118 @@
+---
+// Batch 3A-8 — Edit User. Mirrors /admin/blogs/[id]/edit.astro's
+// form+redirect shell. Admin-only. Only name/role/is_active are editable
+// here (matches `userUpdateSchema` exactly — no password field, per
+// ARCHITECTURE.md: password is delegated entirely to Supabase Auth via the
+// separate "Reset Password" action on the detail page).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import { getUserById } from '@/services';
+import { USER_ROLES } from '@/lib/constants';
+
+const currentUser = Astro.locals.user;
+if (currentUser?.role !== 'admin') {
+  return Astro.redirect('/admin/dashboard?toast=' + encodeURIComponent('Hanya admin yang dapat mengedit pengguna.') + '&toastType=error');
+}
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const user = id ? await getUserById(supabase, id) : null;
+if (!user) {
+  return Astro.redirect('/admin/users?toast=' + encodeURIComponent('Pengguna tidak ditemukan.') + '&toastType=error');
+}
+
+const isSelf = currentUser?.id === user.id;
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const roleOptions = USER_ROLES.map((r) => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }));
+const statusOptions = [
+  { value: 'true', label: 'Aktif' },
+  { value: 'false', label: 'Nonaktif' },
+];
+---
+
+<AdminLayout title="Edit Pengguna">
+  <div class="page-users-edit">
+    <PageHeader title="Edit Pengguna" crumbs={[{ label: 'Users', href: '/admin/users' }, { label: user.name, href: `/admin/users/${user.id}` }, { label: 'Edit' }]}>
+      <a href={`/admin/users/${user.id}`} class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </PageHeader>
+
+    {toast && (
+      <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+        <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+        {toast}
+      </div>
+    )}
+
+    <form method="post" action={`/api/admin/users/${user.id}`} id="userEditForm">
+      <input type="hidden" name="_method" value="PUT" />
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <div class="user-section-header">
+                <div class="user-section-icon accent"><i class="bi bi-person"></i></div>
+                <h6 class="user-section-title mb-0">Informasi Akun</h6>
+              </div>
+            </div>
+            <div class="card-body">
+              <FormField label="Nama Lengkap" name="name" value={user.name} required error={fieldError('name')} />
+              <FormField label="Email" name="email_display" value={user.email} disabled readonly help="Email tidak dapat diubah dari sini — dikelola lewat Supabase Auth." />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card mb-4">
+            <div class="card-header">
+              <div class="user-section-header">
+                <div class="user-section-icon danger"><i class="bi bi-shield-lock"></i></div>
+                <h6 class="user-section-title mb-0">Role & Status</h6>
+              </div>
+            </div>
+            <div class="card-body">
+              {isSelf ? (
+                <>
+                  <div class="user-edit-note">
+                    <i class="bi bi-info-circle"></i>
+                    Anda tidak dapat mengubah role atau status akun Anda sendiri.
+                  </div>
+                  <input type="hidden" name="role" value={user.role} />
+                  <input type="hidden" name="is_active" value={String(user.is_active)} />
+                </>
+              ) : (
+                <>
+                  <FormField label="Role" name="role" as="select" options={roleOptions} value={user.role} error={fieldError('role')} />
+                  <FormField label="Status" name="is_active" as="select" options={statusOptions} value={String(user.is_active)} error={fieldError('is_active')} />
+                </>
+              )}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+            <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('userEditForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

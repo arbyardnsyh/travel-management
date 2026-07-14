@@ -1,0 +1,247 @@
+// main: ../main.scss
+/*--------------------------------------------------------------
+# Blog Hero Section
+--------------------------------------------------------------*/
+.blog-hero {
+
+  // Featured Post
+  .featured-post {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+
+    img {
+      width: 100%;
+      height: 500px;
+      object-fit: cover;
+    }
+
+    .post-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+      padding: 2rem;
+      color: var(--contrast-color);
+    }
+
+    .post-content {
+      max-width: 800px;
+    }
+
+    .post-title {
+      font-size: 2rem;
+      margin: 1rem 0;
+
+      a {
+        color: var(--contrast-color);
+
+        &:hover {
+          color: color-mix(in srgb, var(--contrast-color), transparent 20%);
+        }
+      }
+    }
+
+    .post-excerpt {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+  }
+
+  // Secondary Posts
+  .secondary-post {
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 100%;
+
+    .post-image {
+      img {
+        width: 100%;
+        height: 240px;
+        object-fit: cover;
+      }
+    }
+
+    .post-content {
+      padding: 1.5rem;
+    }
+
+    .post-title {
+      font-size: 1.25rem;
+      margin: 0.5rem 0;
+      line-height: 1.4;
+
+      a {
+        color: var(--heading-color);
+
+        &:hover {
+          color: var(--accent-color);
+        }
+      }
+    }
+  }
+
+  // News Tabs
+  .news-tabs {
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    overflow: hidden;
+
+    .nav-tabs {
+      border: none;
+      padding: 1rem 1rem 0;
+      gap: 0.5rem;
+      background-color: var(--surface-color);
+
+      .nav-link {
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        color: var(--default-color);
+        font-weight: 500;
+        border-radius: 20px;
+        transition: 0.3s;
+
+        &:hover {
+          color: var(--accent-color);
+        }
+
+        &.active {
+          background-color: var(--accent-color);
+          color: var(--contrast-color);
+        }
+      }
+    }
+
+    .tab-content {
+      padding: 1.5rem;
+    }
+  }
+
+  // Tab Posts
+  .tab-post {
+    padding: 1rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--default-color), transparent 90%);
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    img {
+      border-radius: 8px;
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+    }
+
+    .post-content {
+      padding-left: 1rem;
+    }
+
+    .post-title {
+      font-size: 0.9375rem;
+      margin: 0.5rem 0;
+      line-height: 1.4;
+
+      a {
+        color: var(--heading-color);
+
+        &:hover {
+          color: var(--accent-color);
+        }
+      }
+    }
+  }
+
+  // Common Elements
+  .category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: var(--accent-color);
+    color: var(--contrast-color);
+    margin-right: 0.5rem;
+  }
+
+  .date {
+    font-size: 0.875rem;
+    color: color-mix(in srgb, var(--default-color), transparent 30%);
+  }
+
+  .post-author {
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+
+    span {
+      color: color-mix(in srgb, var(--default-color), transparent 30%);
+    }
+
+    a {
+      color: var(--accent-color);
+      font-weight: 500;
+
+      &:hover {
+        color: color-mix(in srgb, var(--accent-color), transparent 25%);
+      }
+    }
+  }
+
+  // Responsive
+  @media (max-width: 991.98px) {
+    .featured-post {
+      img {
+        height: 400px;
+      }
+
+      .post-title {
+        font-size: 1.75rem;
+      }
+    }
+
+    .secondary-post {
+      .post-image img {
+        height: 220px;
+      }
+    }
+
+    .news-tabs {
+      margin-top: 2rem;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .featured-post {
+      img {
+        height: 500px;
+      }
+
+      .post-title {
+        font-size: 1.5rem;
+      }
+
+      .post-overlay {
+        padding: 1.5rem;
+      }
+    }
+
+    .tab-post {
+      .post-title {
+        font-size: 0.875rem;
+      }
+
+      img {
+        height: 80px;
+      }
+    }
+  }
+}

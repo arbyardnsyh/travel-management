@@ -1,0 +1,109 @@
+---
+// Batch 3A-5 — Bookings trash (mirrors /admin/testimonials/trash.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import EmptyState from '@/components/admin/EmptyState.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listBookings } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: bookings, count, totalPages } = await listBookings(supabase, {
+  q: q || undefined,
+  onlyDeleted: true,
+  page,
+  perPage,
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+---
+
+<AdminLayout title="Arsip Booking">
+  <PageHeader title="Arsip Booking" crumbs={[{ label: 'Transaksi' }, { label: 'Booking List', href: '/admin/bookings' }, { label: 'Arsip' }]}>
+    <a href="/admin/bookings" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  {bookings.length === 0 && !q ? (
+    <div class="card">
+      <div class="card-body">
+        <EmptyState icon="bi bi-trash3" title="Arsip kosong" text="Booking yang dihapus akan muncul di sini dan dapat dipulihkan kapan saja." />
+      </div>
+    </div>
+  ) : (
+    <DataTable
+      columns={[
+        { key: 'customer_name', label: 'Customer' },
+        { key: 'tour', label: 'Tour' },
+        { key: 'status', label: 'Status' },
+        { key: 'deleted_at', label: 'Diarsipkan' },
+      ]}
+      basePath="/admin/bookings/trash"
+      searchParams={searchParams}
+      searchPlaceholder="Cari booking diarsipkan..."
+      page={page}
+      totalPages={totalPages}
+      total={count}
+      perPage={perPage}
+      itemLabel="booking"
+      isEmpty={bookings.length === 0}
+      emptyIcon="bi bi-search"
+      emptyTitle="Tidak ditemukan"
+      emptyText={`Tidak ada booking diarsipkan yang cocok dengan "${q}".`}
+      actionsLabel="Aksi"
+    >
+      {bookings.map((booking) => (
+        <tr>
+          <td>
+            <div class="fw-semibold text-muted">{booking.customer_name}</div>
+            <div class="text-muted small">{booking.customer_email}</div>
+          </td>
+          <td class="users-meta">{booking.tour?.title ?? '-'}</td>
+          <td><StatusBadge status={booking.status} label={statusLabel(booking.status)} /></td>
+          <td class="users-meta">{formatDate(booking.deleted_at)}</td>
+          <td class="text-center">
+            <div class="users-actions">
+              <form method="post" action={`/api/admin/bookings/${booking.id}/restore`} class="d-inline">
+                <button type="submit" class="users-action-btn" title="Pulihkan">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  class="users-action-btn danger"
+                  title="Hapus Permanen"
+                  onclick={`openDeleteModal({ action: '/api/admin/bookings/${booking.id}?permanent=1', label: '${booking.customer_name.replace(/'/g, "\\'")} (permanen)' })`}
+                >
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+      ))}
+    </DataTable>
+  )}
+
+  <ConfirmDeleteModal />
+</AdminLayout>

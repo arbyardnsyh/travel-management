@@ -1,0 +1,167 @@
+---
+// Batch 3A-2 — Tour edit form (mirrors /admin/destinations/[id]/edit.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import { getTourById, listDestinations, listActivityLogs } from '@/services';
+import { formatDate } from '@/lib/helpers';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+const tour = id ? await getTourById(supabase, id) : null;
+if (!tour) {
+  return Astro.redirect('/admin/tours?toast=' + encodeURIComponent('Tour tidak ditemukan.') + '&toastType=error');
+}
+
+const [{ data: destinations }, logs] = await Promise.all([
+  listDestinations(supabase, { perPage: 100 }),
+  listActivityLogs(supabase, { entity: 'tours', entityId: tour.id, perPage: 8 }),
+]);
+
+const destinationOptions = [
+  { value: '', label: '— Tanpa Destinasi —' },
+  ...destinations.map((d) => ({ value: d.id, label: d.name })),
+];
+
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const statusOptions = CONTENT_STATUSES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+---
+
+<AdminLayout title={`Edit ${tour.title}`}>
+  <PageHeader title="Edit Tour" crumbs={[{ label: 'Master Data' }, { label: 'Tours', href: '/admin/tours' }, { label: tour.title }]}>
+    <a href={`/admin/tours/${tour.id}`} class="btn btn-outline-secondary me-2">
+      <i class="bi bi-eye me-1"></i> Lihat Detail
+    </a>
+    <a href="/admin/tours" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action={`/api/admin/tours/${tour.id}`} id="tourForm">
+    <input type="hidden" name="_method" value="PUT" />
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Tour</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <FormField label="Judul Tour" name="title" value={tour.title} required />
+              </div>
+              <div class="col-md-4">
+                <FormField label="Slug" name="slug" value={tour.slug} help="Kosongkan untuk mempertahankan slug saat ini." />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <FormField
+                  label="Destinasi"
+                  name="destination_id"
+                  as="select"
+                  options={destinationOptions}
+                  value={tour.destination_id ?? ''}
+                  help="Relasi tour ke destinasi (opsional)."
+                />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Harga" name="price" type="number" min={0} value={tour.price} required />
+              </div>
+              <div class="col-md-3">
+                <FormField label="Durasi" name="duration" value={tour.duration ?? ''} placeholder="mis. 3 Hari 2 Malam" />
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <FormField label="Kuota" name="quota" type="number" min={0} value={tour.quota} />
+              </div>
+            </div>
+            <FormField label="Deskripsi" name="description" as="textarea" rows={6} value={tour.description ?? ''} />
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Riwayat Aktivitas</h5>
+          </div>
+          <div class="card-body p-0">
+            {logs.data.length === 0 ? (
+              <p class="text-muted small p-3 mb-0">Belum ada aktivitas tercatat.</p>
+            ) : (
+              <ul class="list-group list-group-flush">
+                {logs.data.map((log) => (
+                  <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-medium">{log.description ?? log.action}</div>
+                      <div class="text-muted small">{log.actor_name ?? 'Sistem'}</div>
+                    </div>
+                    <span class="text-muted small">{formatDate(log.created_at, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Publikasi</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Status" name="status" as="select" options={statusOptions} value={tour.status} />
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="thumbnail" label="Thumbnail" folder="tour" value={tour.thumbnail} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mb-2" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-danger w-100"
+          onclick={`openDeleteModal({ action: '/api/admin/tours/${tour.id}', label: '${tour.title.replace(/'/g, "\\'")}' })`}
+        >
+          <i class="bi bi-trash3 me-1"></i> Hapus Tour
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('tourForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

@@ -1,0 +1,224 @@
+---
+// Reusable image uploader (Fondasi UI — Batch 3A).
+// Uses PowerAdmin's native `.upload-dropzone.upload-dropzone-image` +
+// `.upload-image-preview` markup (see forms-upload.html) wired to Supabase
+// Storage via `/api/admin/upload` (POST to upload, DELETE to remove) per
+// ARCHITECTURE.md §8. Stores the resulting *storage path* (not the full
+// public URL) in a hidden input, matching how every service/schema expects
+// image columns to be populated on form submit.
+//
+// Usage:
+//   <ImageUploader name="thumbnail" label="Thumbnail" folder="destination" value={destination?.thumbnail} />
+
+import { publicStorageUrl } from '@/utils/storage';
+import { MAX_IMAGE_SIZE_BYTES, type ImageFolder } from '@/lib/constants';
+
+export interface Props {
+  name: string;
+  label: string;
+  folder: ImageFolder;
+  value?: string | null;
+  required?: boolean;
+  help?: string;
+  error?: string | null;
+}
+
+const { name, label, folder, value = null, required = false, help, error = null } = Astro.props;
+
+const supabase = Astro.locals.supabase;
+const previewUrl = value ? publicStorageUrl(supabase, value) : '';
+const inputId = `uploader-${name}`;
+---
+
+<div class="mb-3">
+  <label class="form-label">
+    {label}
+    {required && <span class="text-danger">*</span>}
+  </label>
+
+  <div class="upload-dropzone upload-dropzone-image" id={`${inputId}-dropzone`} data-image-uploader data-folder={folder} data-input-id={inputId}>
+    <input type="file" id={`${inputId}-file`} accept="image/*" hidden />
+    <div class="upload-dropzone-content" data-role="placeholder" style={previewUrl ? 'display:none;' : ''}>
+      <div class="upload-dropzone-icon"><i class="bi bi-image"></i></div>
+      <h5 class="upload-dropzone-title">Drop gambar di sini atau klik untuk unggah</h5>
+      <p class="upload-dropzone-text">PNG, JPG, WEBP, atau GIF, maks {Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024))}MB</p>
+    </div>
+  </div>
+
+  <div class="upload-image-preview mt-3" data-role="preview" style={!previewUrl ? 'display:none;' : ''}>
+    <div class="upload-image-item" data-role="preview-item" style="width:140px;height:140px;" title="Klik untuk ganti gambar">
+      <img src={previewUrl} alt={label} data-role="preview-img" />
+      <button type="button" class="upload-image-remove" data-action="delete" title="Hapus gambar">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+  <p class="text-muted small mt-1 mb-0" data-role="preview-hint" style={!previewUrl ? 'display:none;' : ''}>Klik gambar untuk mengganti.</p>
+
+  <div class="upload-progress-list mt-2" data-role="progress" style="display:none;">
+    <div class="upload-progress-item">
+      <div class="upload-progress-icon"><i class="bi bi-file-earmark-image text-primary"></i></div>
+      <div class="upload-progress-info">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="upload-progress-name" data-role="progress-name">Mengunggah...</span>
+          <span class="upload-progress-size" data-role="progress-pct">0%</span>
+        </div>
+        <div class="progress" style="height: 4px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" data-role="progress-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="invalid-feedback d-block" data-role="error" style={!error ? 'display:none;' : ''}>{error}</div>
+  {help && <div class="form-text">{help}</div>}
+
+  <input type="hidden" name={name} id={inputId} value={value ?? ''} />
+</div>
+
+<script>
+  // One listener setup, delegated per-instance via data-image-uploader.
+  // Runs once per page load; multiple ImageUploader instances on the same
+  // page (e.g. thumbnail + cover) each get their own scoped elements.
+  document.querySelectorAll<HTMLElement>('[data-image-uploader]').forEach((dropzone) => {
+    if (dropzone.dataset.wired === '1') return;
+    dropzone.dataset.wired = '1';
+
+    const inputId = dropzone.dataset.inputId!;
+    const folder = dropzone.dataset.folder!;
+    const fileInput = dropzone.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const hiddenInput = document.getElementById(inputId) as HTMLInputElement;
+    const wrapper = dropzone.closest('.mb-3')!;
+    const placeholder = dropzone.querySelector<HTMLElement>('[data-role="placeholder"]')!;
+    const preview = wrapper.querySelector<HTMLElement>('[data-role="preview"]')!;
+    const previewItem = wrapper.querySelector<HTMLElement>('[data-role="preview-item"]')!;
+    const previewImg = wrapper.querySelector<HTMLImageElement>('[data-role="preview-img"]')!;
+    const previewHint = wrapper.querySelector<HTMLElement>('[data-role="preview-hint"]');
+    const progress = wrapper.querySelector<HTMLElement>('[data-role="progress"]')!;
+    const progressBar = wrapper.querySelector<HTMLElement>('[data-role="progress-bar"]')!;
+    const progressPct = wrapper.querySelector<HTMLElement>('[data-role="progress-pct"]')!;
+    const errorEl = wrapper.querySelector<HTMLElement>('[data-role="error"]')!;
+    const deleteBtn = wrapper.querySelector<HTMLButtonElement>('[data-action="delete"]');
+
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const MAX_SIZE = 5 * 1024 * 1024;
+
+    function showError(msg: string) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+    function clearError() {
+      errorEl.style.display = 'none';
+    }
+
+    function openPicker() {
+      fileInput.click();
+    }
+
+    dropzone.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-action]')) return;
+      openPicker();
+    });
+    previewItem?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-action]')) return;
+      openPicker();
+    });
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) handleFile(file);
+    });
+
+    deleteBtn?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const path = hiddenInput.value;
+      if (path) {
+        try {
+          await fetch(`/api/admin/upload?path=${encodeURIComponent(path)}`, { method: 'DELETE' });
+        } catch {
+          // best-effort — clear the field locally regardless
+        }
+      }
+      hiddenInput.value = '';
+      preview.style.display = 'none';
+      if (previewHint) previewHint.style.display = 'none';
+      placeholder.style.display = '';
+      fileInput.value = '';
+      clearError();
+    });
+
+    function handleFile(file: File) {
+      clearError();
+      if (!ALLOWED.includes(file.type)) {
+        showError('Format gambar tidak didukung. Gunakan JPG, PNG, WEBP, atau GIF.');
+        return;
+      }
+      if (file.size > MAX_SIZE) {
+        showError('Ukuran gambar maksimal 5MB.');
+        return;
+      }
+      upload(file);
+    }
+
+    function upload(file: File) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
+
+      placeholder.style.display = 'none';
+      preview.style.display = 'none';
+      progress.style.display = '';
+      progressBar.style.width = '0%';
+      progressPct.textContent = '0%';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/admin/upload');
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progressBar.style.width = `${pct}%`;
+        progressPct.textContent = `${pct}%`;
+      });
+
+      xhr.addEventListener('load', () => {
+        progress.style.display = 'none';
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+            hiddenInput.value = res.data.path;
+            previewImg.src = res.data.url;
+            preview.style.display = '';
+            if (previewHint) previewHint.style.display = '';
+            placeholder.style.display = 'none';
+          } else {
+            showError(res.error || 'Gagal mengunggah gambar.');
+            placeholder.style.display = '';
+          }
+        } catch {
+          showError('Gagal mengunggah gambar.');
+          placeholder.style.display = '';
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        progress.style.display = 'none';
+        placeholder.style.display = '';
+        showError('Gagal mengunggah gambar. Periksa koneksi Anda.');
+      });
+
+      xhr.send(formData);
+    }
+  });
+</script>

@@ -1,0 +1,176 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getDestinationBySlug, listDestinationGallery, listTours } from '@/services';
+import { formatCurrency } from '@/utils/format';
+import { publicStorageUrl } from '@/utils/storage';
+
+const { slug } = Astro.params;
+const supabase = Astro.locals.supabase;
+
+const destination = slug ? await getDestinationBySlug(supabase, slug) : null;
+
+if (!destination || destination.status !== 'published' || destination.deleted_at) {
+  return Astro.redirect('/destinations');
+}
+
+const gallery = await listDestinationGallery(supabase, destination.id);
+const { data: relatedTours } = await listTours(supabase, { status: 'published', destinationId: destination.id, perPage: 6 });
+---
+
+<PublicLayout title={destination.name} description={destination.description?.slice(0, 160) || `Jelajahi ${destination.name}`} image={publicStorageUrl(supabase, destination.cover_image || destination.thumbnail) || undefined}>
+  <section id="travel-destination-details" class="travel-destination-details section">
+    <div class="container">
+      <!-- Hero Section -->
+      <div class="destination-hero">
+        <div class="hero-content">
+          <h1 class="destination-name">{destination.name}</h1>
+          <p class="destination-tagline">{destination.location}</p>
+        </div>
+        <div class="hero-image">
+          <img src={publicStorageUrl(supabase, destination.cover_image || destination.thumbnail) || '/assets-user/img/travel/showcase-3.webp'} alt={destination.name} class="img-fluid" />
+        </div>
+      </div>
+
+      <!-- Overview Section -->
+      <div class="destination-overview">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <div class="overview-content">
+              <h2>Discover {destination.name}</h2>
+              {destination.description
+                ? destination.description.split('\n').filter(Boolean).map((p) => <p>{p}</p>)
+                : <p>Informasi lengkap mengenai destinasi ini akan segera hadir.</p>}
+              <div class="d-flex align-items-center gap-3 mt-4">
+                <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i> {destination.rating?.toFixed(1) ?? '—'}</span>
+                <span class="fw-bold">Mulai dari {formatCurrency(destination.price)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="overview-image">
+              <img src={publicStorageUrl(supabase, destination.thumbnail) || '/assets-user/img/travel/destination-5.webp'} alt={destination.name} class="img-fluid" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Highlights Section -->
+      <div class="destination-highlights">
+        <div class="section-header">
+          <h2>Must-See Attractions</h2>
+          <p>Explore the most captivating places and experiences</p>
+        </div>
+        <div class="row gy-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="highlight-item">
+              <div class="highlight-image"><img src="/assets-user/img/travel/destination-8.webp" alt="Sacred sites" class="img-fluid" /></div>
+              <div class="highlight-content"><h4>Landmark Bersejarah</h4><p>Jelajahi situs-situs bersejarah dengan nilai budaya dan spiritual yang tinggi.</p></div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="highlight-item">
+              <div class="highlight-image"><img src="/assets-user/img/travel/destination-12.webp" alt="Scenic landscapes" class="img-fluid" /></div>
+              <div class="highlight-content"><h4>Pemandangan Alam</h4><p>Nikmati lanskap alam yang memukau, dari pegunungan hingga pantai.</p></div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="highlight-item">
+              <div class="highlight-image"><img src="/assets-user/img/travel/destination-15.webp" alt="Local culture" class="img-fluid" /></div>
+              <div class="highlight-content"><h4>Budaya Lokal</h4><p>Rasakan kehidupan lokal melalui kuliner, kerajinan, dan tradisi setempat.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Available Tours Section -->
+      <div class="available-tours">
+        <div class="section-header">
+          <h2>Available Tours</h2>
+          <p>Pilih dari paket perjalanan yang telah kami rancang khusus untuk destinasi ini</p>
+        </div>
+
+        <div class="row gy-4">
+          {relatedTours.length === 0 && (
+            <div class="col-12 text-center text-muted py-4">Belum ada tour untuk destinasi ini.</div>
+          )}
+          {relatedTours.map((t) => (
+            <div class="col-lg-4 col-md-6">
+              <div class="tour-card">
+                <div class="tour-image">
+                  <img src={publicStorageUrl(supabase, t.thumbnail) || '/assets-user/img/travel/tour-8.webp'} alt={t.title} class="img-fluid" />
+                  {t.duration && <div class="tour-duration"><span>{t.duration}</span></div>}
+                </div>
+                <div class="tour-content">
+                  <h4>{t.title}</h4>
+                  {t.description && <p>{t.description.slice(0, 90)}{t.description.length > 90 ? '…' : ''}</p>}
+                  <div class="tour-meta">
+                    <span class="tour-price">{formatCurrency(t.price)}</span>
+                  </div>
+                  <a href={`/tours/${t.slug}`} class="btn-tour">View Details <i class="bi bi-arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Practical Information Section -->
+      <div class="practical-info">
+        <div class="section-header">
+          <h2>Travel Information</h2>
+          <p>Essential details for planning your trip</p>
+        </div>
+        <div class="row gy-4">
+          <div class="col-lg-6">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-icon"><i class="bi bi-calendar3"></i></div>
+                <div class="info-content"><h5>Best Time to Visit</h5><p>Hubungi tim kami untuk rekomendasi waktu terbaik berkunjung ke {destination.name}.</p></div>
+              </div>
+              <div class="info-item">
+                <div class="info-icon"><i class="bi bi-cash-coin"></i></div>
+                <div class="info-content"><h5>Estimated Budget</h5><p>Mulai dari {formatCurrency(destination.price)} per orang, tergantung paket tour yang dipilih.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-icon"><i class="bi bi-geo-alt"></i></div>
+                <div class="info-content"><h5>Location</h5><p>{destination.location}</p></div>
+              </div>
+              <div class="info-item">
+                <div class="info-icon"><i class="bi bi-shield-check"></i></div>
+                <div class="info-content"><h5>Safety Tips</h5><p>Ikuti arahan pemandu lokal dan hormati adat serta budaya setempat.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {gallery.length > 0 && (
+        <div class="destination-gallery">
+          <div class="section-header">
+            <h2>Photo Gallery</h2>
+            <p>Momen dan keindahan {destination.name}</p>
+          </div>
+          <div class="gallery-grid">
+            {gallery.map((g, i) => (
+              <div class={`gallery-item ${i === 0 ? 'large' : ''}`}>
+                <a href={publicStorageUrl(supabase, g.image_url)} class="glightbox" data-gallery="destination-gallery">
+                  <img src={publicStorageUrl(supabase, g.image_url)} alt={g.caption || destination.name} class="img-fluid" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div class="row justify-content-center mt-5">
+        <div class="col-lg-6 text-center">
+          <a href="/destinations" class="btn-explore"><span>Back to All Destinations</span> <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

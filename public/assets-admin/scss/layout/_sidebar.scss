@@ -1,0 +1,438 @@
+/*--------------------------------------------------------------
+# Sidebar - Dual Panel Design
+# Left: light icon strip with rounded icons | Right: nav panel
+--------------------------------------------------------------*/
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  z-index: 1001;
+  transition: transform var(--transition-base);
+}
+
+/*--------------------------------------------------------------
+# Icon Strip - Light bar with rounded icon buttons
+--------------------------------------------------------------*/
+
+.sidebar-strip {
+  width: var(--sidebar-icon-width);
+  min-width: var(--sidebar-icon-width);
+  background: color-mix(in srgb, var(--sidebar-bg), var(--default-color) 5%);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 var(--spacing-md);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.sidebar-strip-logo {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-strip-logo a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-strip-logo img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+}
+
+/* Icon Strip Navigation */
+.sidebar-strip-nav {
+  flex: 1;
+  padding: 0 0 var(--spacing-sm);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-strip-nav::-webkit-scrollbar {
+  width: 0;
+}
+
+.strip-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Icon Button - Rounded with light background */
+.strip-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background-color: var(--sidebar-bg);
+  border: none;
+  color: var(--muted-color);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  text-decoration: none;
+}
+
+.strip-item i {
+  font-size: 1.25rem;
+}
+
+.strip-item:hover {
+  background-color: color-mix(in srgb, var(--accent-color), transparent 88%);
+  color: var(--accent-color);
+}
+
+.strip-item.active {
+  background-color: var(--accent-color);
+  color: var(--contrast-color);
+}
+
+/* Icon Strip Bottom */
+.sidebar-strip-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+}
+
+.sidebar-strip-bottom .strip-item {
+  width: 40px;
+  height: 40px;
+}
+
+.sidebar-strip-bottom .strip-item i {
+  font-size: 1.125rem;
+}
+
+.sidebar-strip-avatar {
+  display: flex;
+  text-decoration: none;
+  margin-top: var(--spacing-xs);
+}
+
+.sidebar-strip-avatar img {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  transition: border-color var(--transition-fast);
+}
+
+.sidebar-strip-avatar:hover img {
+  border-color: var(--accent-color);
+}
+
+/*--------------------------------------------------------------
+# Nav Panel - Text navigation area
+--------------------------------------------------------------*/
+
+.sidebar-panel {
+  width: var(--sidebar-panel-width);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition-base), opacity var(--transition-fast);
+}
+
+.sidebar-panel::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-panel::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.sidebar-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/*--------------------------------------------------------------
+# Panel Sections - Only active one is visible
+--------------------------------------------------------------*/
+
+.sidebar-panel-section {
+  display: none;
+  padding: 0 0 var(--spacing-lg);
+}
+
+.sidebar-panel-section.active {
+  display: block;
+}
+
+/* Panel Header */
+.sidebar-panel-header {
+  position: sticky;
+  top: 0;
+  background: var(--sidebar-bg);
+  padding: 0 var(--spacing-lg);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--sidebar-border);
+  z-index: 1;
+}
+
+.sidebar-panel-header h6 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--heading-color);
+}
+
+/* Panel close button */
+.sidebar-panel-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: none;
+  border: none;
+  color: var(--muted-color);
+  cursor: pointer;
+  font-size: 0.625rem;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sidebar-panel-close:hover {
+  opacity: 1;
+  background-color: var(--sidebar-hover-bg);
+}
+
+.sidebar-panel-close:focus,
+.sidebar-panel-close:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (max-width: 1199px) {
+  .sidebar-panel-close {
+    display: flex;
+  }
+}
+
+/*--------------------------------------------------------------
+# Panel Navigation
+--------------------------------------------------------------*/
+
+.sidebar .panel-nav {
+  list-style: none;
+  padding: var(--spacing-sm);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar .panel-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--sidebar-color);
+  text-decoration: none;
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar .panel-link:hover {
+  color: var(--accent-color);
+  background-color: var(--sidebar-hover-bg);
+}
+
+.sidebar .panel-link.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-color);
+  font-weight: 500;
+}
+
+/*--------------------------------------------------------------
+# Panel Nav Groups (Drilldown sub-sections)
+# When a group opens, siblings hide - only sub-items visible
+--------------------------------------------------------------*/
+
+.sidebar .panel-nav-group {
+  position: relative;
+}
+
+.sidebar .panel-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 500;
+}
+
+.sidebar .panel-arrow {
+  font-size: 0.625rem;
+  transition: transform var(--transition-fast);
+  opacity: 0.5;
+}
+
+/* Sub-navigation (collapsed by default) */
+.sidebar .panel-subnav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-base);
+}
+
+.sidebar .panel-nav-group.open > .panel-subnav,
+.sidebar .panel-subnav.show {
+  max-height: none;
+}
+
+.sidebar .panel-subnav .panel-link {
+  font-size: 0.8125rem;
+  color: var(--sidebar-muted-color);
+}
+
+.sidebar .panel-subnav .panel-link:hover {
+  color: var(--accent-color);
+}
+
+.sidebar .panel-subnav .panel-link.active {
+  color: var(--sidebar-active-color);
+  background-color: var(--sidebar-active-bg);
+}
+
+/* Drilldown: when a group is open, hide all sibling items */
+.sidebar .panel-nav:has(> .panel-nav-group.open) > li:not(.panel-nav-group.open) {
+  display: none;
+}
+
+/* Open group toggle becomes a back-header */
+.sidebar .panel-nav-group.open > .panel-group-toggle {
+  font-weight: 600;
+  color: var(--heading-color);
+  border-radius: 0;
+  padding: 8px 14px 10px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border-color-light);
+}
+
+.sidebar .panel-nav-group.open > .panel-group-toggle:hover {
+  background: transparent;
+}
+
+/* Arrow points left when open (back indicator) */
+.sidebar .panel-nav-group.open > .panel-group-toggle > .panel-arrow {
+  transform: rotate(90deg);
+  opacity: 0.8;
+}
+
+/* Subnav items get full-width styling when drilled down (no indent) */
+.sidebar .panel-nav-group.open > .panel-subnav .panel-link {
+  padding-left: 14px;
+  color: var(--sidebar-color);
+}
+
+/*--------------------------------------------------------------
+# Panel Collapsed State (Desktop)
+# Toggle hides/shows the nav panel, icon strip always visible
+--------------------------------------------------------------*/
+
+@media (min-width: 1200px) {
+  .sidebar-panel-collapsed .sidebar-panel {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
+/*--------------------------------------------------------------
+# Tablet: 768px - 1199px
+# Icon strip visible, panel hidden by default
+--------------------------------------------------------------*/
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar-panel {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-panel-open .sidebar-panel {
+    width: var(--sidebar-panel-width);
+    opacity: 1;
+    overflow-y: auto;
+  }
+}
+
+/* Between 768px and 1199px, icon strip is always visible */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar {
+    transform: none;
+  }
+}
+
+/*--------------------------------------------------------------
+# Mobile: Everything hidden below 768px
+--------------------------------------------------------------*/
+
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+}
+
+/*--------------------------------------------------------------
+# Sidebar Overlay (Mobile)
+--------------------------------------------------------------*/
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--default-color), transparent 50%);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+}
+
+.sidebar-open .sidebar-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (min-width: 768px) {
+  .sidebar-overlay {
+    display: none;
+  }
+}

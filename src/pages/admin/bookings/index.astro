@@ -1,0 +1,297 @@
+---
+// Batch 3A-5 — Bookings list (mirrors /admin/testimonials/index.astro
+// pattern). Bookings originate from the public site (`/booking` form) —
+// admin has no Create button here, only manages: view detail, edit customer
+// details, change status, edit notes, soft delete/restore/permanent delete.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listBookings, listDestinations, listTours } from '@/services';
+import { formatDate } from '@/lib/helpers';
+import { BOOKING_STATUSES } from '@/lib/constants';
+import type { BookingStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as BookingStatus | null) ?? undefined;
+const destinationId = searchParams.get('destination') ?? undefined;
+const tourId = searchParams.get('tour') ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const { data: bookings, count, totalPages } = await listBookings(supabase, {
+  q: q || undefined,
+  status,
+  destinationId,
+  tourId,
+  page,
+  perPage,
+});
+
+// Filter dropdown source data (published + draft, non-deleted — admins may
+// still want to filter bookings tied to an archived tour/destination too,
+// but a generous perPage keeps this a single query without new architecture).
+const [{ data: destinations }, { data: tours }] = await Promise.all([
+  listDestinations(supabase, { perPage: 200 }),
+  listTours(supabase, { perPage: 200 }),
+]);
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/testimonials (service always orders by
+// created_at desc under the hood).
+const sorted = [...bookings].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'customer_name') cmp = a.customer_name.localeCompare(b.customer_name);
+  else if (sort === 'travel_date') cmp = new Date(a.travel_date).getTime() - new Date(b.travel_date).getTime();
+  else if (sort === 'participants') cmp = a.participants - b.participants;
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'success';
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function filterHref(next: Partial<{ status: string; destination: string; tour: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : status;
+  const nextDestination = 'destination' in next ? next.destination : destinationId;
+  const nextTour = 'tour' in next ? next.tour : tourId;
+  if (nextStatus) params.set('status', nextStatus);
+  if (nextDestination) params.set('destination', nextDestination);
+  if (nextTour) params.set('tour', nextTour);
+  return `/admin/bookings?${params.toString()}`;
+}
+
+const selectedDestination = destinations.find((d) => d.id === destinationId);
+const selectedTour = tours.find((t) => t.id === tourId);
+---
+
+<AdminLayout title="Booking List">
+  <PageHeader title="Booking List" crumbs={[{ label: 'Transaksi' }, { label: 'Booking List' }]}>
+    <a href="/admin/bookings/trash" class="btn btn-outline-secondary">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <div id="bulkActionBar" class="alert alert-primary d-none align-items-center justify-content-between gap-3 mb-3" role="alert">
+    <span><strong data-bulk-count>0</strong> booking dipilih</span>
+    <div class="d-flex align-items-center gap-2">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" type="button">
+          <i class="bi bi-lightning-charge me-1"></i> Aksi Massal
+        </button>
+        <ul class="dropdown-menu">
+          {BOOKING_STATUSES.map((s) => (
+            <li>
+              <button type="button" class="dropdown-item" data-bulk-action={s}>
+                Tandai {statusLabel(s)}
+              </button>
+            </li>
+          ))}
+          <li><hr class="dropdown-divider" /></li>
+          <li>
+            <button type="button" class="dropdown-item text-danger" data-bulk-action="soft_delete">
+              Hapus (Arsip)
+            </button>
+          </li>
+        </ul>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bulk-clear>Batal</button>
+    </div>
+  </div>
+
+  <DataTable
+    columns={[
+      { key: 'select', label: '', sortable: false, width: '36px' },
+      { key: 'customer_name', label: 'Customer', sortable: true },
+      { key: 'tour', label: 'Tour / Destinasi', sortable: false },
+      { key: 'travel_date', label: 'Tanggal', sortable: true },
+      { key: 'participants', label: 'Peserta', sortable: true },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/bookings"
+    searchParams={searchParams}
+    searchPlaceholder="Cari nama, email, atau telepon..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="booking"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-calendar-check"
+    emptyTitle={q ? 'Booking tidak ditemukan' : 'Belum ada booking'}
+    emptyText={q ? `Tidak ada booking yang cocok dengan "${q}".` : 'Booking baru dari pengunjung situs akan muncul di sini.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? statusLabel(status) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          {BOOKING_STATUSES.map((s) => (
+            <li><a class="dropdown-item" href={filterHref({ status: s })}>{statusLabel(s)}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-geo-alt me-1"></i> {selectedDestination ? selectedDestination.name : 'Semua Destinasi'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="max-height:300px;overflow-y:auto;">
+          <li><a class="dropdown-item" href={filterHref({ destination: '' })}>Semua Destinasi</a></li>
+          {destinations.map((d) => (
+            <li><a class="dropdown-item" href={filterHref({ destination: d.id })}>{d.name}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-map me-1"></i> {selectedTour ? selectedTour.title : 'Semua Tour'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="max-height:300px;overflow-y:auto;">
+          <li><a class="dropdown-item" href={filterHref({ tour: '' })}>Semua Tour</a></li>
+          {tours.map((t) => (
+            <li><a class="dropdown-item" href={filterHref({ tour: t.id })}>{t.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((booking) => (
+      <tr>
+        <td>
+          <input type="checkbox" class="form-check-input" data-booking-checkbox value={booking.id} aria-label="Pilih booking" />
+        </td>
+        <td>
+          <div class="fw-semibold">{booking.customer_name}</div>
+          <div class="text-muted small">{booking.customer_email}</div>
+          <div class="text-muted small">{booking.phone}</div>
+        </td>
+        <td>
+          <div class="fw-medium">{booking.tour?.title ?? '-'}</div>
+          <div class="text-muted small">{booking.tour?.destination?.name ?? '-'}</div>
+        </td>
+        <td class="users-meta">{formatDate(booking.travel_date)}</td>
+        <td class="users-meta">{booking.participants} orang</td>
+        <td><StatusBadge status={booking.status} label={statusLabel(booking.status)} /></td>
+        <td class="users-meta">{formatDate(booking.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/bookings/${booking.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/bookings/${booking.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <div class="dropdown d-inline-block">
+              <button class="users-action-btn" title="Ubah Status" data-bs-toggle="dropdown" type="button">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                {BOOKING_STATUSES.filter((s) => s !== booking.status).map((s) => (
+                  <li>
+                    <form method="post" action={`/api/admin/bookings/${booking.id}/status`}>
+                      <input type="hidden" name="status" value={s} />
+                      <button type="submit" class="dropdown-item">Tandai {statusLabel(s)}</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/bookings/${booking.id}', label: '${booking.customer_name.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>
+
+<script>
+  // Bulk action toolbar — vanilla JS, no new component. Reads checked
+  // checkboxes rendered inline in the table rows above, and calls
+  // /api/admin/bookings/bulk for the selected action.
+  const bar = document.getElementById('bulkActionBar');
+  const countEl = bar?.querySelector('[data-bulk-count]');
+  const clearBtn = bar?.querySelector('[data-bulk-clear]');
+  const actionBtns = bar?.querySelectorAll<HTMLButtonElement>('[data-bulk-action]');
+
+  function getChecked(): string[] {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('[data-booking-checkbox]:checked')).map((el) => el.value);
+  }
+
+  function refreshBar() {
+    const ids = getChecked();
+    if (!bar || !countEl) return;
+    if (ids.length > 0) {
+      bar.classList.remove('d-none');
+      bar.classList.add('d-flex');
+      countEl.textContent = String(ids.length);
+    } else {
+      bar.classList.add('d-none');
+      bar.classList.remove('d-flex');
+    }
+  }
+
+  document.querySelectorAll<HTMLInputElement>('[data-booking-checkbox]').forEach((el) => {
+    el.addEventListener('change', refreshBar);
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    document.querySelectorAll<HTMLInputElement>('[data-booking-checkbox]:checked').forEach((el) => (el.checked = false));
+    refreshBar();
+  });
+
+  actionBtns?.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const ids = getChecked();
+      if (ids.length === 0) return;
+      const action = btn.dataset.bulkAction;
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/bookings/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ ids, action }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          window.location.href = `/admin/bookings?toast=${encodeURIComponent(`${json.data.succeeded} dari ${json.data.total} booking berhasil diperbarui.`)}&toastType=success`;
+        } else {
+          window.location.href = `/admin/bookings?toast=${encodeURIComponent(json.error || 'Aksi massal gagal.')}&toastType=error`;
+        }
+      } catch {
+        window.location.href = `/admin/bookings?toast=${encodeURIComponent('Aksi massal gagal.')}&toastType=error`;
+      }
+    });
+  });
+</script>

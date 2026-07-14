@@ -1,0 +1,172 @@
+---
+// Batch 3A-2 — Tours list (mirrors /admin/destinations/index.astro pattern).
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import DataTable from '@/components/admin/DataTable.astro';
+import StatusBadge from '@/components/admin/StatusBadge.astro';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal.astro';
+import { listTours, listDestinations } from '@/services';
+import { formatCurrency, formatDate, publicStorageUrl } from '@/lib/helpers';
+import { CONTENT_STATUSES } from '@/lib/constants';
+import type { ContentStatus } from '@/lib/database.types';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+
+const q = searchParams.get('q') ?? '';
+const status = (searchParams.get('status') as ContentStatus | null) ?? undefined;
+const destinationId = searchParams.get('destination') ?? undefined;
+const sort = searchParams.get('sort') ?? 'created_at';
+const dir = (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc';
+const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1);
+const perPage = 10;
+
+const [{ data: tours, count, totalPages }, { data: allDestinations }] = await Promise.all([
+  listTours(supabase, {
+    q: q || undefined,
+    status,
+    destinationId,
+    page,
+    perPage,
+  }),
+  listDestinations(supabase, { perPage: 100 }),
+]);
+
+// Light in-memory re-sort for the sortable columns exposed in the table
+// header, same approach as /admin/destinations (service always orders by
+// created_at desc under the hood).
+const sorted = [...tours].sort((a, b) => {
+  let cmp = 0;
+  if (sort === 'title') cmp = a.title.localeCompare(b.title);
+  else if (sort === 'price') cmp = a.price - b.price;
+  else if (sort === 'quota') cmp = a.quota - b.quota;
+  else if (sort === 'status') cmp = a.status.localeCompare(b.status);
+  else cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  return dir === 'asc' ? cmp : -cmp;
+});
+
+const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function filterHref(next: Partial<{ status: string; destination: string }>): string {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  const nextStatus = 'status' in next ? next.status : status;
+  const nextDestination = 'destination' in next ? next.destination : destinationId;
+  if (nextStatus) params.set('status', nextStatus);
+  if (nextDestination) params.set('destination', nextDestination);
+  return `/admin/tours?${params.toString()}`;
+}
+
+const selectedDestination = allDestinations.find((d) => d.id === destinationId);
+---
+
+<AdminLayout title="Tours">
+  <PageHeader title="Tours" crumbs={[{ label: 'Master Data' }, { label: 'Tours' }]}>
+    <a href="/admin/tours/trash" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-trash3 me-1"></i> Arsip
+    </a>
+    <a href="/admin/tours/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Tambah Tour
+    </a>
+  </PageHeader>
+
+  <DataTable
+    columns={[
+      { key: 'title', label: 'Tour', sortable: true },
+      { key: 'destination', label: 'Destinasi' },
+      { key: 'price', label: 'Harga', sortable: true },
+      { key: 'quota', label: 'Kuota', sortable: true },
+      { key: 'status', label: 'Status', sortable: true },
+      { key: 'created_at', label: 'Dibuat', sortable: true },
+    ]}
+    basePath="/admin/tours"
+    searchParams={searchParams}
+    searchPlaceholder="Cari judul tour..."
+    page={page}
+    totalPages={totalPages}
+    total={count}
+    perPage={perPage}
+    itemLabel="tour"
+    isEmpty={sorted.length === 0}
+    emptyIcon="bi bi-map"
+    emptyTitle={q ? 'Tour tidak ditemukan' : 'Belum ada tour'}
+    emptyText={q ? `Tidak ada tour yang cocok dengan "${q}".` : 'Mulai dengan menambahkan tour pertama Anda.'}
+  >
+    <Fragment slot="filters">
+      <div class="dropdown me-2">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-signpost-2 me-1"></i> {selectedDestination ? selectedDestination.name : 'Semua Destinasi'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="max-height:320px;overflow-y:auto;">
+          <li><a class="dropdown-item" href={filterHref({ destination: '' })}>Semua Destinasi</a></li>
+          {allDestinations.map((d) => (
+            <li><a class="dropdown-item" href={filterHref({ destination: d.id })}>{d.name}</a></li>
+          ))}
+        </ul>
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="bi bi-funnel me-1"></i> {status ? statusLabel(status) : 'Semua Status'}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href={filterHref({ status: '' })}>Semua Status</a></li>
+          {CONTENT_STATUSES.map((s) => (
+            <li><a class="dropdown-item" href={filterHref({ status: s })}>{statusLabel(s)}</a></li>
+          ))}
+        </ul>
+      </div>
+    </Fragment>
+
+    {sorted.map((tour) => (
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            {tour.thumbnail ? (
+              <img
+                src={publicStorageUrl(supabase, tour.thumbnail)}
+                alt={tour.title}
+                width="44"
+                height="44"
+                class="rounded-2"
+                style="object-fit:cover;"
+              />
+            ) : (
+              <div class="rounded-2 bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                <i class="bi bi-image text-secondary"></i>
+              </div>
+            )}
+            <div>
+              <div class="fw-semibold">{tour.title}</div>
+              <div class="text-muted small">{tour.slug}</div>
+            </div>
+          </div>
+        </td>
+        <td>{tour.destination?.name ?? <span class="text-muted">—</span>}</td>
+        <td>{formatCurrency(tour.price)}</td>
+        <td>{tour.quota}</td>
+        <td><StatusBadge status={tour.status} /></td>
+        <td class="users-meta">{formatDate(tour.created_at)}</td>
+        <td class="text-center">
+          <div class="users-actions">
+            <a href={`/admin/tours/${tour.id}`} class="users-action-btn" title="Detail">
+              <i class="bi bi-eye"></i>
+            </a>
+            <a href={`/admin/tours/${tour.id}/edit`} class="users-action-btn" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button
+              type="button"
+              class="users-action-btn danger"
+              title="Hapus"
+              onclick={`openDeleteModal({ action: '/api/admin/tours/${tour.id}', label: '${tour.title.replace(/'/g, "\\'")}' })`}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))}
+  </DataTable>
+
+  <ConfirmDeleteModal />
+</AdminLayout>

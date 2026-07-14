@@ -1,0 +1,81 @@
+---
+// Batch 3A-3 — Gallery create form (mirrors /admin/tours/create.astro pattern).
+// No status/slug fields — gallery items are just title + image + category.
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import PageHeader from '@/components/admin/PageHeader.astro';
+import FormField from '@/components/admin/FormField.astro';
+import ImageUploader from '@/components/admin/ImageUploader.astro';
+import { listGalleryCategories } from '@/services';
+
+const supabase = Astro.locals.supabase;
+const searchParams = Astro.url.searchParams;
+const toast = searchParams.get('toast');
+const toastType = searchParams.get('toastType') ?? 'error';
+
+const fieldError = (name: string) => searchParams.get(`error_${name}`) ?? null;
+
+const categories = await listGalleryCategories(supabase);
+---
+
+<AdminLayout title="Tambah Foto Gallery">
+  <PageHeader title="Tambah Foto Gallery" crumbs={[{ label: 'Konten' }, { label: 'Gallery', href: '/admin/gallery' }, { label: 'Tambah' }]}>
+    <a href="/admin/gallery" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
+  </PageHeader>
+
+  {toast && (
+    <div class={`alert alert-${toastType === 'success' ? 'success' : 'danger'} d-flex align-items-center gap-2`}>
+      <i class={`bi ${toastType === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}`}></i>
+      {toast}
+    </div>
+  )}
+
+  <form method="post" action="/api/admin/gallery" id="galleryForm">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informasi Foto</h5>
+          </div>
+          <div class="card-body">
+            <FormField label="Judul Foto" name="title" required error={fieldError('title')} />
+            <FormField
+              label="Kategori (opsional)"
+              name="category"
+              placeholder="mis. Pantai, Gunung, Kuliner"
+              help={categories.length ? `Kategori yang sudah ada: ${categories.join(', ')}` : 'Kosongkan bila tidak ingin mengelompokkan foto ini.'}
+              error={fieldError('category')}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Gambar</h5>
+          </div>
+          <div class="card-body">
+            <ImageUploader name="image_url" label="Foto" folder="gallery" required error={fieldError('image_url')} />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" data-submit-btn>
+          <i class="bi bi-check-lg me-1"></i> Simpan Foto
+        </button>
+      </div>
+    </div>
+  </form>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('galleryForm') as HTMLFormElement | null;
+  form?.addEventListener('submit', () => {
+    const btn = form.querySelector('[data-submit-btn]') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    }
+  });
+</script>

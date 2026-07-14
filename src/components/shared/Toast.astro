@@ -1,0 +1,62 @@
+---
+// Global toast container + tiny helper script. Any admin page can trigger a
+// toast by dispatching: window.dispatchEvent(new CustomEvent('app:toast', {
+//   detail: { type: 'success' | 'error' | 'info', message: 'Saved!' }
+// }))
+---
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;" id="app-toast-container"></div>
+
+<script>
+  type ToastDetail = { type?: 'success' | 'error' | 'info'; message: string };
+
+  const container = document.getElementById('app-toast-container');
+
+  function iconFor(type: string) {
+    switch (type) {
+      case 'success':
+        return 'bi-check-circle-fill text-success';
+      case 'error':
+        return 'bi-x-circle-fill text-danger';
+      default:
+        return 'bi-info-circle-fill text-primary';
+    }
+  }
+
+  function showToast(detail: ToastDetail) {
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'toast align-items-center border-0 shadow-sm mb-2';
+    el.setAttribute('role', 'alert');
+    el.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body d-flex align-items-center gap-2">
+          <i class="bi ${iconFor(detail.type || 'info')}"></i>
+          <span>${detail.message}</span>
+        </div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+    container.appendChild(el);
+    // @ts-ignore - bootstrap is loaded globally via vendor script
+    const toast = new bootstrap.Toast(el, { delay: 3500 });
+    toast.show();
+    el.addEventListener('hidden.bs.toast', () => el.remove());
+  }
+
+  window.addEventListener('app:toast', ((e: CustomEvent<ToastDetail>) => {
+    showToast(e.detail);
+  }) as EventListener);
+
+  // Surface toast from ?toast=... query param (after redirects from form posts)
+  const params = new URLSearchParams(window.location.search);
+  const toastMsg = params.get('toast');
+  const toastType = (params.get('toastType') as ToastDetail['type']) || 'success';
+  if (toastMsg) {
+    showToast({ type: toastType, message: decodeURIComponent(toastMsg) });
+    params.delete('toast');
+    params.delete('toastType');
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+  }
+</script>
