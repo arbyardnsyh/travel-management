@@ -1,16 +1,25 @@
 {
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+
     "baseUrl": ".",
+
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@layouts/*": ["src/layouts/*"],
       "@lib/*": ["src/lib/*"]
     },
+
     "jsx": "preserve",
     "allowJs": true,
     "strictNullChecks": true
   },
-  "exclude": ["node_modules", "dist", ".vercel", "public"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".vercel",
+    "public"
+  ]
 }
