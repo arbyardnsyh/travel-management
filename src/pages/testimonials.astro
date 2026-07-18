@@ -57,34 +57,6 @@ const slider = testimonials.slice(0, 9);
     </section>
   )}
 
-  <section id="testimonials" class="testimonials section">
-    <div class="container">
-      {testimonials.length === 0 ? (
-        <p class="text-center text-muted py-5">Belum ada testimoni.</p>
-      ) : (
-        <div class="testimonial-masonry">
-          {testimonials.map((t, i) => (
-            <div class={`testimonial-item ${i % 5 === 1 || i % 5 === 4 ? 'highlight' : ''}`}>
-              <div class="testimonial-content">
-                <div class="quote-pattern"><i class="bi bi-quote"></i></div>
-                <p>{t.message}</p>
-                <div class="client-info">
-                  <div class="client-image">
-                    <img src={t.photo || '/assets-user/img/person/person-f-7.webp'} alt={t.name} />
-                  </div>
-                  <div class="client-details">
-                    <h3>{t.name}</h3>
-                    {t.job && <span class="position">{t.job}</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </section>
-
   <section id="testimonial-form" class="contact section">
     <div class="container">
       <div class="row justify-content-center">
@@ -143,20 +115,6 @@ const slider = testimonials.slice(0, 9);
     const form = document.getElementById('testimonial-form-el') as HTMLFormElement | null;
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // BUG FIX (Testimonial double-submit / false "Error: {success:true}"):
-      // root cause was the vendor script `validate.js` binding its OWN
-      // submit listener to every `.php-email-form` on the page (it expects
-      // the raw response body to literally be "OK", not JSON), which fired
-      // alongside this listener and sent a second, duplicate POST.
-      // `stopImmediatePropagation()` alone did not fix this reliably: this
-      // inline script is compiled by Astro as a deferred module, so the
-      // vendor script's classic `<script is:inline>` listener (registered
-      // near the end of <body>) actually attaches and fires BEFORE this
-      // listener runs, regardless of DOM source order — the previous "fix"
-      // assumed source order determined registration order, which is
-      // incorrect for module vs. classic scripts. The real fix is on the
-      // form itself: `data-ajax-handled` tells validate.js to skip this
-      // form entirely, so only this listener ever runs.
       const loading = form.querySelector<HTMLElement>('.loading');
       const errorMessage = form.querySelector<HTMLElement>('.error-message');
       const sentMessage = form.querySelector<HTMLElement>('.sent-message');
