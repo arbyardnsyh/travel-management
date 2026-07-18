@@ -14,70 +14,125 @@ const page = await getPageBySlug(supabase, 'about');
     <div class="container">
       <div class="row g-5 align-items-center">
         <div class="col-lg-6">
-          <div class="content">
-            <h2 class="mb-4">{page?.title || 'Crafting Unforgettable Journeys'}</h2>
+          <div class="content reveal">
+            <h2 class="mb-4 section-heading">{page?.title || 'Crafting Unforgettable Journeys'}</h2>
             {page?.content ? (
-              <div class="mb-5" set:html={page.content} />
+              <div class="mb-5 page-content" set:html={page.content} />
             ) : (
-              <p class="lead mb-4">Konten halaman About belum diisi. Silakan lengkapi melalui dashboard admin.</p>
+              <p class="lead mb-4 text-muted">Konten halaman About belum diisi. Silakan lengkapi melalui dashboard admin.</p>
             )}
 
-            <div class="row g-4 mb-5">
-              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">350+</div><div class="stat-label">Tours Completed</div></div></div>
-              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">25+</div><div class="stat-label">Countries</div></div></div>
-              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">8</div><div class="stat-label">Years Experience</div></div></div>
-              <div class="col-6"><div class="stat-item text-center"><div class="stat-number">98%</div><div class="stat-label">Satisfied Guests</div></div></div>
+            <div class="row g-4 mb-5" id="stats-counter">
+              <div class="col-6">
+                <div class="stat-item text-center p-3 rounded-3 bg-light shadow-sm">
+                  <div class="stat-number counter" data-target="350">0</div>
+                  <div class="stat-label">Tours Completed</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item text-center p-3 rounded-3 bg-light shadow-sm">
+                  <div class="stat-number counter" data-target="25">0</div>
+                  <div class="stat-label">Countries</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item text-center p-3 rounded-3 bg-light shadow-sm">
+                  <div class="stat-number counter" data-target="8">0</div>
+                  <div class="stat-label">Years Experience</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item text-center p-3 rounded-3 bg-light shadow-sm">
+                  <div class="stat-number counter" data-target="98">0</div>
+                  <div class="stat-label">% Satisfied Guests</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
+        <!-- GAMBAR GRID 2 FOTO -->
         <div class="col-lg-6">
-          <div class="image-stack">
-            <div class="image-main"><img src="/assets-user/img/travel/showcase-3.webp" alt="Travel Experience" class="img-fluid" /></div>
-            <div class="image-overlay"><img src="/assets-user/img/travel/misc-12.webp" alt="Happy Travelers" class="img-fluid" /></div>
+          <div class="image-grid reveal">
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="grid-image-wrapper rounded-4 overflow-hidden shadow-sm">
+                  <img 
+                    src="/assets-user/img/travel/showcase-3.webp" 
+                    alt="Adventure Experience" 
+                    class="w-100" 
+                    style="object-fit: cover; height: 280px;"
+                    loading="lazy"
+                    onerror="this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp';"
+                  />
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="grid-image-wrapper rounded-4 overflow-hidden shadow-sm">
+                  <img 
+                    src="/assets-user/img/travel/misc-12.webp" 
+                    alt="Happy Travelers" 
+                    class="w-100" 
+                    style="object-fit: cover; height: 280px;"
+                    loading="lazy"
+                    onerror="this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp';"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="text-center mt-3 text-muted small">
+              <i class="bi bi-camera-fill me-1"></i> Unforgettable Moments
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="row g-4 mt-5">
+      <!-- Fitur-fitur -->
+      <div class="row g-4 mt-5 pt-5 border-top">
+        <!-- ... (sama seperti sebelumnya) ... -->
+        <div class="col-12 text-center mb-4">
+          <span class="section-badge reveal">Our Values</span>
+          <h3 class="reveal">Mengapa Memilih Kami?</h3>
+          <p class="text-muted reveal">Nilai-nilai yang menjadi fondasi setiap perjalanan yang kami rancang.</p>
+        </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-award"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-award feature-icon"></i></div>
             <h5>Expert Local Guides</h5>
             <p>Pemandu berpengalaman yang memahami budaya dan destinasi secara mendalam.</p>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-headset"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-headset feature-icon"></i></div>
             <h5>24/7 Customer Support</h5>
             <p>Tim kami siap membantu kapan pun Anda membutuhkan, sepanjang perjalanan.</p>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-shield-check feature-icon"></i></div>
             <h5>Best Price Guarantee</h5>
             <p>Harga kompetitif dengan transparansi penuh, tanpa biaya tersembunyi.</p>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-geo-alt"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-geo-alt feature-icon"></i></div>
             <h5>Local Expertise</h5>
             <p>Pengetahuan mendalam tentang setiap destinasi yang kami tawarkan.</p>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-calendar-check"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-calendar-check feature-icon"></i></div>
             <h5>Flexible Booking</h5>
             <p>Perubahan jadwal yang mudah sesuai kebutuhan perjalanan Anda.</p>
           </div>
         </div>
         <div class="col-lg-4 col-md-6">
-          <div class="feature-item text-center">
-            <div class="feature-icon"><i class="bi bi-leaf"></i></div>
+          <div class="feature-card reveal">
+            <div class="feature-icon-wrapper"><i class="bi bi-leaf feature-icon"></i></div>
             <h5>Sustainable Travel</h5>
             <p>Berkomitmen pada praktik perjalanan yang bertanggung jawab dan berkelanjutan.</p>
           </div>
@@ -86,3 +141,206 @@ const page = await getPageBySlug(supabase, 'about');
     </div>
   </section>
 </PublicLayout>
+
+<style>
+  :root {
+    --accent-color: #ff6b35;
+    --primary-color: #0d6efd;
+    --dark-color: #1a1a2e;
+  }
+
+  .about.section {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    will-change: opacity, transform;
+  }
+  .reveal.reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-heading {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--dark-color);
+  }
+  .section-badge {
+    display: inline-block;
+    padding: 0.4rem 1.2rem;
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--accent-color);
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-item {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .stat-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+  }
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    line-height: 1.2;
+  }
+  .stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ========== IMAGE GRID (2 foto) ========== */
+  .grid-image-wrapper {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .grid-image-wrapper:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+  }
+
+  .feature-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: rgba(255, 107, 53, 0.2);
+  }
+  .feature-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(255,107,53,0.1) 0%, rgba(255,107,53,0.2) 100%);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    transition: all 0.3s ease;
+  }
+  .feature-card:hover .feature-icon-wrapper {
+    background: var(--accent-color);
+    transform: rotate(5deg) scale(1.05);
+  }
+  .feature-icon {
+    font-size: 2rem;
+    color: var(--accent-color);
+    transition: color 0.3s ease;
+  }
+  .feature-card:hover .feature-icon {
+    color: #fff;
+  }
+  .feature-card h5 {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--dark-color);
+  }
+  .feature-card p {
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 992px) {
+    .section-heading {
+      font-size: 2rem;
+    }
+    .stat-number {
+      font-size: 2rem;
+    }
+  }
+  @media (max-width: 576px) {
+    .about.section {
+      padding-top: 40px;
+      padding-bottom: 40px;
+    }
+    .feature-card {
+      padding: 1.5rem 1rem;
+    }
+    /* Pastikan grid tetap 2 kolom di mobile, tapi bisa diperkecil tingginya */
+    .grid-image-wrapper img {
+      height: 200px !important;
+    }
+  }
+</style>
+
+<script>
+  function initScrollReveal() {
+    const reveals = document.querySelectorAll('.reveal');
+    if (!reveals.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+    reveals.forEach(el => observer.observe(el));
+  }
+
+  function animateCounters() {
+    const counters = document.querySelectorAll('.counter');
+    if (!counters.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const counter = entry.target;
+          const target = +counter.getAttribute('data-target');
+          const duration = 1500;
+          const start = 0;
+          const startTime = performance.now();
+
+          function updateCounter(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const currentValue = Math.floor(progress * (target - start) + start);
+            counter.textContent = currentValue + (counter.closest('.stat-item')?.classList.contains('percentage') ? '%' : '');
+            if (progress < 1) {
+              requestAnimationFrame(updateCounter);
+            } else {
+              counter.textContent = target + (counter.closest('.stat-item')?.classList.contains('percentage') ? '%' : '');
+            }
+          }
+          requestAnimationFrame(updateCounter);
+          observer.unobserve(counter);
+        }
+      });
+    }, { threshold: 0.5 });
+    counters.forEach(counter => observer.observe(counter));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initScrollReveal();
+    animateCounters();
+  });
+  document.addEventListener('astro:page-load', () => {
+    initScrollReveal();
+    animateCounters();
+  });
+</script>

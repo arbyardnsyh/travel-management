@@ -5,6 +5,10 @@
 // which itself only composes calls to the *other* services
 // (destination/tour/booking/gallery/testimonial/faq/blog/blog-category/
 // user/contact/activity-log) — this page never touches Supabase directly.
+//
+// Visual pass: markup/CSS reorganized into a clearer information hierarchy
+// (Overview → Booking Pipeline → Content → Inbox → Charts → Activity).
+// No data-fetching, service calls, or chart logic were changed.
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import PageHeader from '@/components/admin/PageHeader.astro';
 import StatusBadge from '@/components/admin/StatusBadge.astro';
@@ -48,359 +52,691 @@ const chartData = {
   blogPublishStatus: charts.blogPublishStatus,
   userRoles: charts.userRoles,
 };
+
+// Presentation-only groupings of the same `stats` object — no new data.
+const overviewCards = [
+  { label: 'Total Destinations', value: stats.destinations, icon: 'bi-signpost-2', tone: 'accent' },
+  { label: 'Total Tours', value: stats.tours, icon: 'bi-suitcase-lg', tone: 'success' },
+  { label: 'Total Bookings', value: stats.bookings.total, icon: 'bi-calendar-check', tone: 'info' },
+  { label: 'Total Users', value: stats.users, icon: 'bi-people', tone: 'accent' },
+];
+
+const pipelineCards = [
+  { label: 'Pending', value: stats.bookings.pending, icon: 'bi-hourglass-split', tone: 'warning' },
+  { label: 'Confirmed', value: stats.bookings.confirmed, icon: 'bi-check2-circle', tone: 'info' },
+  { label: 'Completed', value: stats.bookings.completed, icon: 'bi-check-circle', tone: 'success' },
+  { label: 'Cancelled', value: stats.bookings.cancelled, icon: 'bi-x-circle', tone: 'danger' },
+];
+
+const contentCards = [
+  { label: 'Gallery Items', value: stats.gallery, icon: 'bi-images', tone: 'accent' },
+  { label: 'Testimonials', value: stats.testimonials, icon: 'bi-chat-quote', tone: 'info' },
+  { label: 'FAQ Entries', value: stats.faq, icon: 'bi-question-circle', tone: 'success' },
+  { label: 'Blog Articles', value: stats.blogArticles, icon: 'bi-journal-text', tone: 'warning' },
+  { label: 'Blog Categories', value: stats.blogCategories, icon: 'bi-folder2', tone: 'accent' },
+];
+
+const inboxCards = [
+  { label: 'Total Contacts', value: stats.contacts, icon: 'bi-envelope', tone: 'info' },
+  { label: 'Unread Messages', value: stats.unreadContacts, icon: 'bi-envelope-exclamation', tone: 'danger' },
+];
+
+const pipelineTotal = stats.bookings.pending + stats.bookings.confirmed + stats.bookings.completed + stats.bookings.cancelled;
 ---
 
 <AdminLayout title="Dashboard">
   <div class="page-dashboard">
     <PageHeader title="Dashboard" crumbs={[{ label: 'Dashboard' }]} />
 
-    <!-- Statistics -->
-    <div class="metric-cards">
-      <div class="metric-card">
-        <div class="metric-card-icon accent"><i class="bi bi-signpost-2"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Destinations</div>
-          <div class="metric-card-value">{stats.destinations}</div>
-        </div>
+    <!-- Section: Overview -->
+    <section class="dash-section">
+      <div class="dash-section-head">
+        <span class="dash-eyebrow">Overview</span>
       </div>
-      <div class="metric-card">
-        <div class="metric-card-icon success"><i class="bi bi-suitcase-lg"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Tours</div>
-          <div class="metric-card-value">{stats.tours}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon info"><i class="bi bi-calendar-check"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Bookings</div>
-          <div class="metric-card-value">{stats.bookings.total}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon accent"><i class="bi bi-people"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Users</div>
-          <div class="metric-card-value">{stats.users}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-card-icon warning"><i class="bi bi-hourglass-split"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Booking Pending</div>
-          <div class="metric-card-value">{stats.bookings.pending}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon info"><i class="bi bi-check2-circle"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Booking Confirmed</div>
-          <div class="metric-card-value">{stats.bookings.confirmed}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon success"><i class="bi bi-check-circle"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Booking Completed</div>
-          <div class="metric-card-value">{stats.bookings.completed}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon danger"><i class="bi bi-x-circle"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Booking Cancelled</div>
-          <div class="metric-card-value">{stats.bookings.cancelled}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-card-icon accent"><i class="bi bi-images"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Gallery</div>
-          <div class="metric-card-value">{stats.gallery}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon info"><i class="bi bi-chat-quote"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Testimonials</div>
-          <div class="metric-card-value">{stats.testimonials}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon success"><i class="bi bi-question-circle"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total FAQ</div>
-          <div class="metric-card-value">{stats.faq}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon warning"><i class="bi bi-journal-text"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Blog Articles</div>
-          <div class="metric-card-value">{stats.blogArticles}</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-card-icon accent"><i class="bi bi-folder2"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Blog Categories</div>
-          <div class="metric-card-value">{stats.blogCategories}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon info"><i class="bi bi-envelope"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Total Contacts</div>
-          <div class="metric-card-value">{stats.contacts}</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-icon danger"><i class="bi bi-envelope-exclamation"></i></div>
-        <div class="metric-card-body">
-          <div class="metric-card-label">Unread Messages</div>
-          <div class="metric-card-value">{stats.unreadContacts}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Charts Row A: Booking per Bulan + Booking Status -->
-    <div class="dashboard-charts">
-      <div class="card">
-        <div class="card-body">
-          <div class="chart-header">
-            <h5 class="chart-header-title">Booking per Bulan</h5>
+      <div class="metric-grid metric-grid-4">
+        {overviewCards.map((c) => (
+          <div class="stat-card">
+            <div class={`stat-card-icon ${c.tone}`}><i class={`bi ${c.icon}`}></i></div>
+            <div class="stat-card-body">
+              <div class="stat-card-value">{c.value}</div>
+              <div class="stat-card-label">{c.label}</div>
+            </div>
           </div>
-          <div class="chart-container" id="bookingsPerMonthChart"></div>
-        </div>
+        ))}
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Booking Status</h5>
-        </div>
-        <div class="card-body">
-          <div class="chart-container chart-container-sm" id="bookingStatusChart"></div>
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <!-- Charts Row B: Popular Destination + Popular Tour -->
-    <div class="dashboard-extra mb-4">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Popular Destination</h5>
-        </div>
-        <div class="card-body">
-          {chartData.popularDestinations.length === 0 ? (
-            <EmptyState icon="bi bi-geo-alt" title="Belum ada data" text="Destinasi terpopuler akan muncul di sini setelah ada booking." />
-          ) : (
-            <div class="chart-container" id="popularDestinationChart"></div>
-          )}
+    <!-- Section: Booking Pipeline -->
+    <section class="dash-section">
+      <div class="dash-section-head">
+        <span class="dash-eyebrow">Booking Pipeline</span>
+        <span class="dash-section-meta">{pipelineTotal} total</span>
+      </div>
+      <div class="pipeline-card">
+        {pipelineTotal > 0 && (
+          <div class="pipeline-bar" role="img" aria-label="Booking status distribution">
+            <span class="pipeline-seg warning" style={`width:${(stats.bookings.pending / pipelineTotal) * 100}%`}></span>
+            <span class="pipeline-seg info" style={`width:${(stats.bookings.confirmed / pipelineTotal) * 100}%`}></span>
+            <span class="pipeline-seg success" style={`width:${(stats.bookings.completed / pipelineTotal) * 100}%`}></span>
+            <span class="pipeline-seg danger" style={`width:${(stats.bookings.cancelled / pipelineTotal) * 100}%`}></span>
+          </div>
+        )}
+        <div class="pipeline-legend">
+          {pipelineCards.map((c) => (
+            <div class="pipeline-item">
+              <div class={`pipeline-dot ${c.tone}`}></div>
+              <div class="pipeline-item-body">
+                <div class="pipeline-item-value">{c.value}</div>
+                <div class="pipeline-item-label">{c.label}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Popular Tour</h5>
-        </div>
-        <div class="card-body">
-          {chartData.popularTours.length === 0 ? (
-            <EmptyState icon="bi bi-map" title="Belum ada data" text="Tour terpopuler akan muncul di sini setelah ada booking." />
-          ) : (
-            <div class="chart-container" id="popularTourChart"></div>
-          )}
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <!-- Charts Row C: Blog Published vs Draft + User Role -->
-    <div class="dashboard-extra mb-4">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Blog Published vs Draft</h5>
-        </div>
-        <div class="card-body">
-          <div class="chart-container chart-container-sm" id="blogPublishChart"></div>
-        </div>
+    <!-- Section: Content + Inbox -->
+    <section class="dash-section">
+      <div class="dash-section-head">
+        <span class="dash-eyebrow">Content &amp; Inbox</span>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">User Role</h5>
-        </div>
-        <div class="card-body">
-          <div class="chart-container chart-container-sm" id="userRoleChart"></div>
-        </div>
+      <div class="metric-grid metric-grid-mixed">
+        {contentCards.map((c) => (
+          <div class="stat-card stat-card-compact">
+            <div class={`stat-card-icon ${c.tone}`}><i class={`bi ${c.icon}`}></i></div>
+            <div class="stat-card-body">
+              <div class="stat-card-value">{c.value}</div>
+              <div class="stat-card-label">{c.label}</div>
+            </div>
+          </div>
+        ))}
+        {inboxCards.map((c) => (
+          <div class="stat-card stat-card-compact">
+            <div class={`stat-card-icon ${c.tone}`}><i class={`bi ${c.icon}`}></i></div>
+            <div class="stat-card-body">
+              <div class="stat-card-value">{c.value}</div>
+              <div class="stat-card-label">{c.label}</div>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+    </section>
 
-    <!-- Recent Row: Latest Bookings + Recent Activity Logs -->
-    <div class="dashboard-middle">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Latest Bookings</h5>
-          <div class="card-actions">
-            <a href="/admin/bookings" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+    <!-- Section: Charts -->
+    <section class="dash-section">
+      <div class="dash-section-head">
+        <span class="dash-eyebrow">Trends</span>
+      </div>
+
+      <div class="dashboard-charts">
+        <div class="card chart-card chart-card-wide">
+          <div class="card-body">
+            <div class="chart-header">
+              <h5 class="chart-header-title">Booking per Bulan</h5>
+            </div>
+            <div class="chart-container" id="bookingsPerMonthChart"></div>
           </div>
         </div>
-        <div class="card-body p-0">
-          {recent.bookings.length === 0 ? (
-            <EmptyState icon="bi bi-calendar-check" title="Belum ada booking" text="Booking baru dari pengunjung situs akan muncul di sini." />
-          ) : (
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th>Pelanggan</th>
-                    <th>Tour</th>
-                    <th>Tanggal</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.bookings.map((b) => (
+        <div class="card chart-card">
+          <div class="card-header">
+            <h5 class="card-title">Booking Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container chart-container-sm" id="bookingStatusChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-extra">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h5 class="card-title">Popular Destination</h5>
+          </div>
+          <div class="card-body">
+            {chartData.popularDestinations.length === 0 ? (
+              <EmptyState icon="bi bi-geo-alt" title="Belum ada data" text="Destinasi terpopuler akan muncul di sini setelah ada booking." />
+            ) : (
+              <div class="chart-container" id="popularDestinationChart"></div>
+            )}
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h5 class="card-title">Popular Tour</h5>
+          </div>
+          <div class="card-body">
+            {chartData.popularTours.length === 0 ? (
+              <EmptyState icon="bi bi-map" title="Belum ada data" text="Tour terpopuler akan muncul di sini setelah ada booking." />
+            ) : (
+              <div class="chart-container" id="popularTourChart"></div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-extra">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h5 class="card-title">Blog Published vs Draft</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container chart-container-sm" id="blogPublishChart"></div>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h5 class="card-title">User Role</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container chart-container-sm" id="userRoleChart"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Latest Bookings + Recent Activity -->
+    <section class="dash-section">
+      <div class="dashboard-middle">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Latest Bookings</h5>
+            <div class="card-actions">
+              <a href="/admin/bookings" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            {recent.bookings.length === 0 ? (
+              <EmptyState icon="bi bi-calendar-check" title="Belum ada booking" text="Booking baru dari pengunjung situs akan muncul di sini." />
+            ) : (
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead>
                     <tr>
-                      <td>
-                        <div class="fw-semibold">{b.customer_name}</div>
-                        <div class="text-muted small">{b.customer_email}</div>
-                      </td>
-                      <td>{b.tour?.title ?? '-'}</td>
-                      <td>{formatDate(b.travel_date)}</td>
-                      <td><StatusBadge status={b.status} label={statusLabel(b.status)} /></td>
+                      <th>Pelanggan</th>
+                      <th>Tour</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Recent Activity</h5>
-          <div class="card-actions">
-            <a href="/admin/activity-logs" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                  </thead>
+                  <tbody>
+                    {recent.bookings.map((b) => (
+                      <tr>
+                        <td>
+                          <div class="fw-semibold">{b.customer_name}</div>
+                          <div class="text-muted small">{b.customer_email}</div>
+                        </td>
+                        <td>{b.tour?.title ?? '-'}</td>
+                        <td>{formatDate(b.travel_date)}</td>
+                        <td><StatusBadge status={b.status} label={statusLabel(b.status)} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
-        <div class="card-body">
-          {recent.activityLogs.length === 0 ? (
-            <EmptyState icon="bi bi-clock-history" title="Belum ada aktivitas" text="Aktivitas admin akan tercatat di sini." />
-          ) : (
-            <div class="activity-feed">
-              {recent.activityLogs.map((log) => {
-                const meta = ACTIVITY_ICON[log.action] ?? { icon: 'bi-info-circle', tone: 'accent' };
-                return (
-                  <div class="activity-feed-item">
-                    <div class={`activity-feed-icon ${meta.tone}`}>
-                      <i class={`bi ${meta.icon}`}></i>
-                    </div>
-                    <div class="activity-feed-content">
-                      <div class="activity-feed-title">
-                        {log.description ?? `${statusLabel(log.action)} pada ${log.entity}`}
-                        {log.actor_name && <span class="text-muted"> &middot; {log.actor_name}</span>}
+
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Recent Activity</h5>
+            <div class="card-actions">
+              <a href="/admin/activity-logs" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+            </div>
+          </div>
+          <div class="card-body">
+            {recent.activityLogs.length === 0 ? (
+              <EmptyState icon="bi bi-clock-history" title="Belum ada aktivitas" text="Aktivitas admin akan tercatat di sini." />
+            ) : (
+              <div class="activity-feed">
+                {recent.activityLogs.map((log) => {
+                  const meta = ACTIVITY_ICON[log.action] ?? { icon: 'bi-info-circle', tone: 'accent' };
+                  return (
+                    <div class="activity-feed-item">
+                      <div class={`activity-feed-icon ${meta.tone}`}>
+                        <i class={`bi ${meta.icon}`}></i>
                       </div>
-                      <div class="activity-feed-time">{formatDate(log.created_at, true)}</div>
+                      <div class="activity-feed-content">
+                        <div class="activity-feed-title">
+                          {log.description ?? `${statusLabel(log.action)} pada ${log.entity}`}
+                          {log.actor_name && <span class="text-muted"> &middot; {log.actor_name}</span>}
+                        </div>
+                        <div class="activity-feed-time">{formatDate(log.created_at, true)}</div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Row: Latest Contacts + Latest Testimonials + Quick Action -->
-    <div class="dashboard-bottom">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Recent Contact Messages</h5>
-          <div class="card-actions">
-            <a href="/admin/contacts" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-        <div class="card-body">
-          {recent.contacts.length === 0 ? (
-            <EmptyState icon="bi bi-envelope" title="Belum ada pesan" text="Pesan dari form kontak akan muncul di sini." />
-          ) : (
-            <>
-              {recent.contacts.map((c) => (
-                <a href={`/admin/contacts/${c.id}`} class="transaction-item text-decoration-none text-reset">
-                  <div class={`transaction-icon ${c.is_read ? 'transfer' : 'income'}`}>
-                    <i class={`bi ${c.is_read ? 'bi-envelope-open' : 'bi-envelope'}`}></i>
-                  </div>
-                  <div class="transaction-details">
-                    <div class="transaction-name">
-                      {c.name}
-                      {!c.is_read && <span class="badge bg-primary-subtle text-primary ms-2">Unread</span>}
-                    </div>
-                    <div class="transaction-date">{c.subject ?? c.email} &bull; {formatDate(c.created_at)}</div>
-                  </div>
-                </a>
-              ))}
-            </>
-          )}
-        </div>
       </div>
+    </section>
 
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Latest Testimonials</h5>
-          <div class="card-actions">
-            <a href="/admin/testimonials" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+    <!-- Section: Contacts + Testimonials + Quick Action -->
+    <section class="dash-section">
+      <div class="dashboard-bottom">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Recent Contact Messages</h5>
+            <div class="card-actions">
+              <a href="/admin/contacts" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+            </div>
+          </div>
+          <div class="card-body">
+            {recent.contacts.length === 0 ? (
+              <EmptyState icon="bi bi-envelope" title="Belum ada pesan" text="Pesan dari form kontak akan muncul di sini." />
+            ) : (
+              <>
+                {recent.contacts.map((c) => (
+                  <a href={`/admin/contacts/${c.id}`} class="transaction-item text-decoration-none text-reset">
+                    <div class={`transaction-icon ${c.is_read ? 'transfer' : 'income'}`}>
+                      <i class={`bi ${c.is_read ? 'bi-envelope-open' : 'bi-envelope'}`}></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-name">
+                        {c.name}
+                        {!c.is_read && <span class="badge bg-primary-subtle text-primary ms-2">Unread</span>}
+                      </div>
+                      <div class="transaction-date">{c.subject ?? c.email} &bull; {formatDate(c.created_at)}</div>
+                    </div>
+                  </a>
+                ))}
+              </>
+            )}
           </div>
         </div>
-        <div class="card-body">
-          {recent.testimonials.length === 0 ? (
-            <EmptyState icon="bi bi-chat-quote" title="Belum ada testimoni" text="Testimoni dari pengunjung situs akan muncul di sini." />
-          ) : (
-            <div class="product-list">
-              {recent.testimonials.map((t) => (
-                <div class="product-item">
-                  <div class="product-info">
-                    <div class="product-name">{t.name}</div>
-                    <div class="product-category">{t.message.length > 60 ? `${t.message.slice(0, 60)}…` : t.message}</div>
-                  </div>
-                  <div class="product-sales">
-                    <div class="product-sales-value">{'★'.repeat(t.rating)}</div>
-                    <div class="product-sales-count"><StatusBadge status={t.status} label={statusLabel(t.status)} /></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">Quick Action</h5>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Latest Testimonials</h5>
+            <div class="card-actions">
+              <a href="/admin/testimonials" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+            </div>
+          </div>
+          <div class="card-body">
+            {recent.testimonials.length === 0 ? (
+              <EmptyState icon="bi bi-chat-quote" title="Belum ada testimoni" text="Testimoni dari pengunjung situs akan muncul di sini." />
+            ) : (
+              <div class="product-list">
+                {recent.testimonials.map((t) => (
+                  <div class="product-item">
+                    <div class="product-info">
+                      <div class="product-name">{t.name}</div>
+                      <div class="product-category">{t.message.length > 60 ? `${t.message.slice(0, 60)}…` : t.message}</div>
+                    </div>
+                    <div class="product-sales">
+                      <div class="product-sales-value">{'★'.repeat(t.rating)}</div>
+                      <div class="product-sales-count"><StatusBadge status={t.status} label={statusLabel(t.status)} /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div class="card-body d-flex flex-column gap-2">
-          <a href="/admin/destinations" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-signpost-2"></i> Destinations
-          </a>
-          <a href="/admin/tours" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-suitcase-lg"></i> Tours
-          </a>
-          <a href="/admin/gallery" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-images"></i> Gallery
-          </a>
-          <a href="/admin/blogs" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-journal-text"></i> Blog
-          </a>
-          <a href="/admin/faq" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-question-circle"></i> FAQ
-          </a>
-          <a href="/admin/users" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-            <i class="bi bi-people"></i> Users
-          </a>
+
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Quick Action</h5>
+          </div>
+          <div class="card-body quick-actions">
+            <a href="/admin/destinations" class="quick-action-btn">
+              <i class="bi bi-signpost-2"></i> <span>Destinations</span>
+            </a>
+            <a href="/admin/tours" class="quick-action-btn">
+              <i class="bi bi-suitcase-lg"></i> <span>Tours</span>
+            </a>
+            <a href="/admin/gallery" class="quick-action-btn">
+              <i class="bi bi-images"></i> <span>Gallery</span>
+            </a>
+            <a href="/admin/blogs" class="quick-action-btn">
+              <i class="bi bi-journal-text"></i> <span>Blog</span>
+            </a>
+            <a href="/admin/faq" class="quick-action-btn">
+              <i class="bi bi-question-circle"></i> <span>FAQ</span>
+            </a>
+            <a href="/admin/users" class="quick-action-btn">
+              <i class="bi bi-people"></i> <span>Users</span>
+            </a>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </AdminLayout>
+
+<style>
+  .page-dashboard {
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.03);
+    --shadow-card-hover: 0 8px 20px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .dash-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .dash-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .dash-eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-color, #6b7280);
+  }
+
+  .dash-section-meta {
+    font-size: 12px;
+    color: var(--muted-color, #6b7280);
+  }
+
+  /* Stat cards ------------------------------------------------------- */
+  .metric-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .metric-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .metric-grid-mixed {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  @media (max-width: 900px) {
+    .metric-grid-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
+    .metric-grid-4,
+    .metric-grid-mixed {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+
+  .stat-card-compact {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .stat-card-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  .stat-card-compact .stat-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .stat-card-icon.accent { background: color-mix(in srgb, var(--accent-color, #6366f1) 14%, transparent); color: var(--accent-color, #6366f1); }
+  .stat-card-icon.success { background: color-mix(in srgb, var(--success-color, #16a34a) 14%, transparent); color: var(--success-color, #16a34a); }
+  .stat-card-icon.info { background: color-mix(in srgb, var(--info-color, #0ea5e9) 14%, transparent); color: var(--info-color, #0ea5e9); }
+  .stat-card-icon.warning { background: color-mix(in srgb, var(--warning-color, #f59e0b) 14%, transparent); color: var(--warning-color, #f59e0b); }
+  .stat-card-icon.danger { background: color-mix(in srgb, var(--danger-color, #ef4444) 14%, transparent); color: var(--danger-color, #ef4444); }
+
+  .stat-card-body {
+    min-width: 0;
+  }
+
+  .stat-card-value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .stat-card-compact .stat-card-value {
+    font-size: 18px;
+  }
+
+  .stat-card-label {
+    font-size: 12.5px;
+    color: var(--muted-color, #6b7280);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Booking pipeline --------------------------------------------------- */
+  .pipeline-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: 20px;
+  }
+
+  .pipeline-bar {
+    display: flex;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--border-color, #e5e7eb);
+    margin-bottom: 18px;
+  }
+
+  .pipeline-seg {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  .pipeline-seg.warning { background: var(--warning-color, #f59e0b); }
+  .pipeline-seg.info { background: var(--info-color, #0ea5e9); }
+  .pipeline-seg.success { background: var(--success-color, #16a34a); }
+  .pipeline-seg.danger { background: var(--danger-color, #ef4444); }
+
+  .pipeline-legend {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .pipeline-legend {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .pipeline-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pipeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pipeline-dot.warning { background: var(--warning-color, #f59e0b); }
+  .pipeline-dot.info { background: var(--info-color, #0ea5e9); }
+  .pipeline-dot.success { background: var(--success-color, #16a34a); }
+  .pipeline-dot.danger { background: var(--danger-color, #ef4444); }
+
+  .pipeline-item-value {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .pipeline-item-label {
+    font-size: 12px;
+    color: var(--muted-color, #6b7280);
+  }
+
+  /* Charts --------------------------------------------------------- */
+  .dashboard-charts,
+  .dashboard-extra {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-extra:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-charts,
+    .dashboard-extra {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .chart-card {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+  }
+
+  .dashboard-middle,
+  .dashboard-bottom {
+    display: grid;
+    gap: 16px;
+  }
+
+  .dashboard-middle {
+    grid-template-columns: 1.3fr 1fr;
+  }
+
+  .dashboard-bottom {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 1100px) {
+    .dashboard-middle,
+    .dashboard-bottom {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Activity feed ---------------------------------------------------- */
+  .activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .activity-feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  .activity-feed-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-feed-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .activity-feed-icon.accent { background: color-mix(in srgb, var(--accent-color, #6366f1) 14%, transparent); color: var(--accent-color, #6366f1); }
+  .activity-feed-icon.success { background: color-mix(in srgb, var(--success-color, #16a34a) 14%, transparent); color: var(--success-color, #16a34a); }
+  .activity-feed-icon.info { background: color-mix(in srgb, var(--info-color, #0ea5e9) 14%, transparent); color: var(--info-color, #0ea5e9); }
+  .activity-feed-icon.warning { background: color-mix(in srgb, var(--warning-color, #f59e0b) 14%, transparent); color: var(--warning-color, #f59e0b); }
+  .activity-feed-icon.danger { background: color-mix(in srgb, var(--danger-color, #ef4444) 14%, transparent); color: var(--danger-color, #ef4444); }
+
+  .activity-feed-title {
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+
+  .activity-feed-time {
+    font-size: 11.5px;
+    color: var(--muted-color, #6b7280);
+    margin-top: 2px;
+  }
+
+  /* Quick actions -------------------------------------------------- */
+  .quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quick-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-sm);
+    color: inherit;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .quick-action-btn i {
+    color: var(--accent-color, #6366f1);
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+  }
+
+  .quick-action-btn:hover {
+    background: color-mix(in srgb, var(--accent-color, #6366f1) 8%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, #6366f1) 35%, var(--border-color, #e5e7eb));
+    transform: translateX(2px);
+    color: inherit;
+  }
+</style>
 
 <script define:vars={{ chartData }}>
   document.addEventListener('DOMContentLoaded', function () {

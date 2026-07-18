@@ -10,13 +10,13 @@ const { user } = Astro.props;
 const path = Astro.url.pathname;
 const isActive = (href: string) => (path === href ? 'active' : '');
 const isGroupOpen = (prefix: string) => path.startsWith(prefix);
-// BUG FIX (Batch 3A-8) — same issue as AdminHeader.astro: avatar_url is a
-// storage path, not a full URL.
-const avatarSrc = user?.avatar_url ? publicStorageUrl(Astro.locals.supabase, user.avatar_url) : '/assets-admin/img/profile-img.webp';
+const avatarSrc = user?.avatar_url
+  ? publicStorageUrl(Astro.locals.supabase, user.avatar_url)
+  : '/assets-admin/img/profile-img.webp';
 ---
 
 <aside class="sidebar">
-  <!-- Icon Strip (kept for visual parity with PowerAdmin, single entry point) -->
+  <!-- Icon Strip -->
   <div class="sidebar-strip">
     <div class="sidebar-strip-logo">
       <a href="/admin/dashboard">
@@ -75,10 +75,6 @@ const avatarSrc = user?.avatar_url ? publicStorageUrl(Astro.locals.supabase, use
           </ul>
         </li>
 
-        <!-- New "Interaction" group (Batch 3A-11): groups Bookings + Testimonials
-             (moved out of Master Data / their old standalone spot) + the new
-             Contact Messages module, since all three are messages/records that
-             come in from site visitors rather than admin-authored content. -->
         <li class={`panel-nav-group ${isGroupOpen('/admin/bookings') || isGroupOpen('/admin/testimonials') || isGroupOpen('/admin/contacts') ? 'open' : ''}`}>
           <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
             <i class="bi bi-chat-left-text me-2"></i> Interaction
@@ -148,3 +144,192 @@ const avatarSrc = user?.avatar_url ? publicStorageUrl(Astro.locals.supabase, use
 </aside>
 
 <div class="sidebar-overlay"></div>
+
+<style>
+  /* ============================================================
+     Modern sidebar enhancement – retains original color palette
+     ============================================================ */
+
+  /* Floating effect for the whole sidebar */
+  .sidebar {
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    border-radius: 0 1.25rem 1.25rem 0;
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* Icon strip – softer division */
+  .sidebar-strip {
+    border-radius: 0 1.25rem 1.25rem 0;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
+  }
+
+  .sidebar-strip-logo img {
+    border-radius: 0.75rem;
+    transition: transform 0.25s ease;
+  }
+
+  .sidebar-strip-logo a:hover img {
+    transform: scale(1.04);
+  }
+
+  .strip-item {
+    border-radius: 0.75rem;
+    transition: background 0.2s, transform 0.2s;
+  }
+  
+
+  .strip-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .sidebar-strip-avatar {
+    border-radius: 50%;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .sidebar-strip-avatar:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  /* Panel – card-like appearance */
+  .sidebar-panel {
+    backdrop-filter: blur(4px);
+    border-radius: 0 1rem 1rem 0;
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.05);
+  }
+
+  .sidebar-panel-header {
+    padding: 1.25rem 1.25rem 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .sidebar-panel-close {
+    border-radius: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .sidebar-panel-close:hover {
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* Navigation links */
+  .panel-link {
+    margin: 0.15rem 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    position: relative;
+    font-size: 0.95rem;
+  }
+
+  .panel-link i {
+    font-size: 1.15rem;
+    transition: transform 0.2s;
+  }
+
+  .panel-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateX(4px);
+  }
+
+  .panel-link:hover i {
+    transform: scale(1.1);
+  }
+
+  /* Active state – subtle left indicator */
+  .panel-link.active {
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 500;
+  }
+
+  .panel-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 25%;
+    height: 50%;
+    width: 3px;
+    background: currentColor;
+    border-radius: 3px;
+    opacity: 0.8;
+  }
+
+  /* Group toggle arrow animation */
+  .panel-group-toggle .panel-arrow {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+  }
+
+  .panel-nav-group.open > .panel-group-toggle .panel-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* Subnav styles */
+  .panel-subnav {
+    padding-left: 1.5rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    opacity: 0;
+  }
+
+  .panel-nav-group.open .panel-subnav {
+    max-height: 600px;
+    opacity: 1;
+  }
+
+  .panel-subnav .panel-link {
+    font-size: 0.9rem;
+    margin: 0.15rem 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .panel-subnav .panel-link:hover {
+    transform: translateX(2px);
+  }
+
+  /* Logout button – same link style */
+  button.panel-link {
+    cursor: pointer;
+    appearance: none;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    font-size: 0.95rem;
+  }
+
+  button.panel-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateX(4px);
+  }
+
+  /* Overlay – smooth fade */
+  .sidebar-overlay {
+    transition: opacity 0.3s ease;
+  }
+
+  /* Scrollbar styling for panel */
+  .sidebar-panel {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+
+  .sidebar-panel::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .sidebar-panel::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+  }
+</style>

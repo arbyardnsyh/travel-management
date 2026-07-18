@@ -24,6 +24,55 @@ const statusLabel = booking.status.charAt(0).toUpperCase() + booking.status.slic
 const searchParams = Astro.url.searchParams;
 const toast = searchParams.get('toast');
 const toastType = searchParams.get('toastType') ?? 'success';
+
+// --- WhatsApp click-to-chat helpers -----------------------------------
+
+// Normalize a local/international phone number into WhatsApp's expected
+// format: digits only, no leading zero, using the 62 (Indonesia) country
+// code when the number doesn't already carry one.
+function formatPhoneForWhatsapp(rawPhone: string | null | undefined): string {
+  if (!rawPhone) return '';
+  let digits = rawPhone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) {
+    digits = '62' + digits.slice(1);
+  } else if (digits.startsWith('62')) {
+    // already in international format
+  } else if (digits.startsWith('8')) {
+    // e.g. "812xxxx" without leading 0 or country code
+    digits = '62' + digits;
+  }
+  return digits;
+}
+
+const pricePerPerson = booking.tour?.price ?? null;
+const totalPrice = pricePerPerson != null ? pricePerPerson * booking.participants : null;
+
+const waPhone = formatPhoneForWhatsapp(booking.phone);
+const waMessage = `Halo Bapak/Ibu ${booking.customer_name},
+
+Terima kasih telah melakukan booking di TravelTime. Berikut rincian pemesanan Anda:
+
+------------------------------
+Tour: ${booking.tour?.title ?? '-'}
+Tanggal: ${formatDate(booking.travel_date)}
+Jumlah Peserta: ${booking.participants} orang
+Harga per Orang: ${pricePerPerson != null ? formatCurrency(pricePerPerson) : 'Rp -'}
+Total Pembayaran: ${totalPrice != null ? formatCurrency(totalPrice) : 'Rp -'}
+------------------------------
+
+Mohon melakukan pembayaran sesuai nominal di atas. Setelah transfer, mohon kirimkan bukti pembayaran agar booking Anda dapat segera kami konfirmasi.
+
+Terima kasih atas kepercayaan Anda.
+
+Hormat kami,
+TravelTime`;
+
+const waLink = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null;
+
+// Inline SVG so the WhatsApp glyph always renders, regardless of which
+// Bootstrap Icons version is installed (bi-whatsapp is only available
+// from BI 1.11+).
+const waIconSvg = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.014 2.005A9.987 9.987 0 0 0 2 12.013a9.9 9.9 0 0 0 1.334 4.99L2 22l5.113-1.32a9.99 9.99 0 0 0 4.897 1.28h.005c5.514 0 9.986-4.471 9.986-9.986a9.93 9.93 0 0 0-2.926-7.06 9.925 9.925 0 0 0-7.06-2.93zm0 18.267h-.004a8.27 8.27 0 0 1-4.215-1.155l-.302-.18-3.034.784.81-2.958-.198-.304a8.284 8.284 0 0 1-1.269-4.446c0-4.575 3.723-8.297 8.302-8.297a8.24 8.24 0 0 1 5.868 2.432 8.234 8.234 0 0 1 2.43 5.87c-.002 4.575-3.724 8.254-8.388 8.254z"/></svg>`;
 ---
 
 <AdminLayout title="Detail Booking">
@@ -57,7 +106,21 @@ const toastType = searchParams.get('toastType') ?? 'success';
           </div>
           <div class="row mb-3">
             <div class="col-md-4 text-muted small">Telepon</div>
-            <div class="col-md-8">{booking.phone}</div>
+            <div class="col-md-8">
+              {waLink ? (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="d-inline-flex align-items-center gap-2 text-decoration-none text-body wa-phone-link"
+                >
+                  <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white flex-shrink-0" style="width: 26px; height: 26px;" set:html={waIconSvg} />
+                  <span>{booking.phone}</span>
+                </a>
+              ) : (
+                booking.phone
+              )}
+            </div>
           </div>
           <div class="row mb-3">
             <div class="col-md-4 text-muted small">Jumlah Peserta</div>
@@ -145,6 +208,17 @@ const toastType = searchParams.get('toastType') ?? 'success';
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-body d-grid gap-2">
+          {waLink && (
+            <a href={waLink} target="_blank" rel="noopener noreferrer" class="btn btn-success d-flex align-items-center justify-content-center gap-2">
+              <span class="d-inline-flex flex-shrink-0" set:html={waIconSvg} />
+              <span>Kirim Konfirmasi via WhatsApp</span>
+            </a>
+          )}
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-body d-grid gap-2">
           <a href={`/admin/bookings/${booking.id}/edit`} class="btn btn-primary">
@@ -164,6 +238,19 @@ const toastType = searchParams.get('toastType') ?? 'success';
 
   <ConfirmDeleteModal />
 </AdminLayout>
+
+<style>
+  .wa-phone-link {
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+  }
+  .wa-phone-link:hover {
+    background-color: rgba(25, 135, 84, 0.08);
+    color: inherit;
+  }
+</style>
 
 <script>
   const form = document.getElementById('notesForm') as HTMLFormElement | null;

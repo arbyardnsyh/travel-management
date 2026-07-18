@@ -15,40 +15,74 @@ if (!destination || destination.status !== 'published' || destination.deleted_at
 
 const gallery = await listDestinationGallery(supabase, destination.id);
 const { data: relatedTours } = await listTours(supabase, { status: 'published', destinationId: destination.id, perPage: 6 });
+
+// Static content for the Travel Information cards — kept as an array so all
+// four cards share exactly the same markup/structure (no per-card drift in size).
+const travelInfo = [
+  {
+    icon: 'bi-calendar3',
+    title: 'Best Time to Visit',
+    text: `Hubungi tim kami untuk rekomendasi waktu terbaik berkunjung ke ${destination.name}.`,
+  },
+  {
+    icon: 'bi-cash-coin',
+    title: 'Estimated Budget',
+    text: `Mulai dari ${formatCurrency(destination.price)} per orang, tergantung paket tour yang dipilih.`,
+  },
+  {
+    icon: 'bi-geo-alt',
+    title: 'Location',
+    text: destination.location,
+  },
+  {
+    icon: 'bi-shield-check',
+    title: 'Safety Tips',
+    text: 'Ikuti arahan pemandu lokal dan hormati adat serta budaya setempat.',
+  },
+];
 ---
 
 <PublicLayout title={destination.name} description={destination.description?.slice(0, 160) || `Jelajahi ${destination.name}`} image={publicStorageUrl(supabase, destination.cover_image || destination.thumbnail) || undefined}>
   <section id="travel-destination-details" class="travel-destination-details section">
     <div class="container">
-      <!-- Hero Section -->
+      <!-- Hero Section – redesigned with overlay -->
       <div class="destination-hero">
-        <div class="hero-content">
-          <h1 class="destination-name">{destination.name}</h1>
-          <p class="destination-tagline">{destination.location}</p>
-        </div>
-        <div class="hero-image">
-          <img src={publicStorageUrl(supabase, destination.cover_image || destination.thumbnail) || '/assets-user/img/travel/showcase-3.webp'} alt={destination.name} class="img-fluid" />
+        <div class="hero-image-wrapper">
+          <img src={publicStorageUrl(supabase, destination.cover_image || destination.thumbnail) || '/assets-user/img/travel/showcase-3.webp'} alt={destination.name} class="hero-bg" />
+          <div class="hero-overlay">
+            <div class="hero-text">
+              <h1 class="destination-name">{destination.name}</h1>
+              <p class="destination-location"><i class="bi bi-geo-alt-fill"></i> {destination.location}</p>
+              <div class="hero-meta">
+                <span class="badge badge-rating"><i class="bi bi-star-fill"></i> {destination.rating?.toFixed(1) ?? '—'}</span>
+                <span class="badge badge-price ms-2">Mulai {formatCurrency(destination.price)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Overview Section -->
       <div class="destination-overview">
         <div class="row align-items-center">
-          <div class="col-lg-8">
+          <div class="col-lg-7">
             <div class="overview-content">
               <h2>Discover {destination.name}</h2>
               {destination.description
                 ? destination.description.split('\n').filter(Boolean).map((p) => <p>{p}</p>)
                 : <p>Informasi lengkap mengenai destinasi ini akan segera hadir.</p>}
-              <div class="d-flex align-items-center gap-3 mt-4">
-                <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i> {destination.rating?.toFixed(1) ?? '—'}</span>
-                <span class="fw-bold">Mulai dari {formatCurrency(destination.price)}</span>
+              <div class="mt-4">
+                <a href="#tours" class="btn-accent">Lihat Tour Tersedia <i class="bi bi-arrow-right ms-1"></i></a>
               </div>
             </div>
           </div>
-          <div class="col-lg-4">
-            <div class="overview-image">
-              <img src={publicStorageUrl(supabase, destination.thumbnail) || '/assets-user/img/travel/destination-5.webp'} alt={destination.name} class="img-fluid" />
+          <div class="col-lg-5 d-none d-lg-block">
+            <div class="overview-image-wrapper">
+              <img src={publicStorageUrl(supabase, destination.thumbnail) || '/assets-user/img/travel/destination-5.webp'} alt={destination.name} class="overview-side-img" />
+              <div class="experience-badge">
+                <span>{destination.rating?.toFixed(1) ?? '4.5'}</span>
+                <small>Rating</small>
+              </div>
             </div>
           </div>
         </div>
@@ -56,7 +90,7 @@ const { data: relatedTours } = await listTours(supabase, { status: 'published', 
 
       <!-- Highlights Section -->
       <div class="destination-highlights">
-        <div class="section-header">
+        <div class="section-header text-center">
           <h2>Must-See Attractions</h2>
           <p>Explore the most captivating places and experiences</p>
         </div>
@@ -83,8 +117,8 @@ const { data: relatedTours } = await listTours(supabase, { status: 'published', 
       </div>
 
       <!-- Available Tours Section -->
-      <div class="available-tours">
-        <div class="section-header">
+      <div id="tours" class="available-tours">
+        <div class="section-header text-center">
           <h2>Available Tours</h2>
           <p>Pilih dari paket perjalanan yang telah kami rancang khusus untuk destinasi ini</p>
         </div>
@@ -106,7 +140,7 @@ const { data: relatedTours } = await listTours(supabase, { status: 'published', 
                   <div class="tour-meta">
                     <span class="tour-price">{formatCurrency(t.price)}</span>
                   </div>
-                  <a href={`/tours/${t.slug}`} class="btn-tour">View Details <i class="bi bi-arrow-right"></i></a>
+                  <a href={`/tours/${t.slug}`} class="btn-tour"><span class="btn-tour-label">View Details</span> <i class="bi bi-arrow-right"></i></a>
                 </div>
               </div>
             </div>
@@ -116,41 +150,26 @@ const { data: relatedTours } = await listTours(supabase, { status: 'published', 
 
       <!-- Practical Information Section -->
       <div class="practical-info">
-        <div class="section-header">
+        <div class="section-header text-center">
           <h2>Travel Information</h2>
           <p>Essential details for planning your trip</p>
         </div>
-        <div class="row gy-4">
-          <div class="col-lg-6">
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-icon"><i class="bi bi-calendar3"></i></div>
-                <div class="info-content"><h5>Best Time to Visit</h5><p>Hubungi tim kami untuk rekomendasi waktu terbaik berkunjung ke {destination.name}.</p></div>
-              </div>
-              <div class="info-item">
-                <div class="info-icon"><i class="bi bi-cash-coin"></i></div>
-                <div class="info-content"><h5>Estimated Budget</h5><p>Mulai dari {formatCurrency(destination.price)} per orang, tergantung paket tour yang dipilih.</p></div>
+        <div class="info-grid">
+          {travelInfo.map((info) => (
+            <div class="info-item">
+              <div class="info-icon"><i class={`bi ${info.icon}`}></i></div>
+              <div class="info-content">
+                <h5>{info.title}</h5>
+                <p>{info.text}</p>
               </div>
             </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-icon"><i class="bi bi-geo-alt"></i></div>
-                <div class="info-content"><h5>Location</h5><p>{destination.location}</p></div>
-              </div>
-              <div class="info-item">
-                <div class="info-icon"><i class="bi bi-shield-check"></i></div>
-                <div class="info-content"><h5>Safety Tips</h5><p>Ikuti arahan pemandu lokal dan hormati adat serta budaya setempat.</p></div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {gallery.length > 0 && (
         <div class="destination-gallery">
-          <div class="section-header">
+          <div class="section-header text-center">
             <h2>Photo Gallery</h2>
             <p>Momen dan keindahan {destination.name}</p>
           </div>
@@ -174,3 +193,410 @@ const { data: relatedTours } = await listTours(supabase, { status: 'published', 
     </div>
   </section>
 </PublicLayout>
+
+<style>
+  /* Perbaikan tampilan modern tanpa mengubah backend */
+  .travel-destination-details {
+    background: #f8fafc;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  /* Hero baru: full-width overlay */
+  .destination-hero {
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 3rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  .hero-image-wrapper {
+    position: relative;
+    height: 60vh;
+    min-height: 400px;
+  }
+  .hero-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 20%, rgba(0, 0, 0, 0.1) 80%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2.5rem;
+    color: white;
+  }
+  /* Force white regardless of any global h1/p color rules */
+  .hero-text h1.destination-name {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white !important;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+    margin-bottom: 0.5rem;
+  }
+  .hero-text p.destination-location {
+    font-size: 1.2rem;
+    color: white !important;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    opacity: 0.95;
+  }
+  .hero-meta {
+    margin-top: 0.8rem;
+  }
+  .hero-meta .badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-weight: 600;
+  }
+  /* Rating badge: semi-transparent dark pill, white text, yellow star */
+  .badge-rating {
+    background: rgba(15, 23, 42, 0.55);
+    color: white !important;
+    backdrop-filter: blur(4px);
+  }
+  .badge-rating .bi-star-fill {
+    color: #facc15 !important;
+    margin-right: 0.2rem;
+  }
+  /* Price badge: orange fill, white text (matches accent buttons) */
+  .badge-price {
+    background: #ea580c;
+    color: white !important;
+  }
+
+  /* Overview */
+  .destination-overview {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  }
+  .overview-content h2 {
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #0f172a;
+  }
+  .overview-content p {
+    color: #334155;
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+  .btn-accent {
+    display: inline-flex;
+    align-items: center;
+    background: #ea580c;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.3s, transform 0.2s;
+  }
+  .btn-accent:hover {
+    background: #c2410c;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .overview-image-wrapper {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+  .overview-side-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+  .experience-badge {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    color: #0f172a;
+    border-radius: 12px;
+    padding: 0.5rem 1.2rem;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+  }
+  .experience-badge span {
+    font-size: 1.5rem;
+    color: #ea580c;
+  }
+  .experience-badge small {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+  }
+
+  /* Highlights */
+  .destination-highlights {
+    margin-bottom: 3rem;
+  }
+  .highlight-item {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+  }
+  .highlight-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.1);
+  }
+  .highlight-image img {
+    height: 220px;
+    width: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .highlight-content {
+    padding: 1.5rem;
+  }
+  .highlight-content h4 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Available Tours */
+  .available-tours {
+    margin-bottom: 3rem;
+  }
+  .tour-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tour-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+  }
+  .tour-image {
+    position: relative;
+  }
+  .tour-image img {
+    height: 200px;
+    width: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .tour-duration {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    backdrop-filter: blur(4px);
+  }
+  .tour-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .tour-content h4 {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .tour-content p {
+    color: #475569;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    flex: 1;
+  }
+  .tour-meta {
+    margin-bottom: 1rem;
+  }
+  .tour-price {
+    font-weight: 700;
+    color: #ea580c;
+    font-size: 1.2rem;
+  }
+  /* View Details: solid orange fill, white text/icon at rest (no hover needed), stays white on hover too */
+  a.btn-tour,
+  a.btn-tour:link,
+  a.btn-tour:visited {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    background-color: #ea580c;
+    color: white !important;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: auto;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+  a.btn-tour .btn-tour-label,
+  a.btn-tour i {
+    color: white !important;
+  }
+  a.btn-tour:hover,
+  a.btn-tour:focus,
+  a.btn-tour:active {
+    background-color: #c2410c;
+    color: white !important;
+    transform: translateY(-2px);
+  }
+
+  /* Practical Info — 4 equal cards, 2x2 on desktop, uniform sizing */
+  .practical-info {
+    margin-bottom: 3rem;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    background: white;
+    padding: 1.8rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s;
+    height: 100%;
+  }
+  .info-item:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  }
+  .info-icon {
+    font-size: 1.8rem;
+    color: #ea580c;
+    background: #fff7ed;
+    border-radius: 12px;
+    padding: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+  }
+  .info-content {
+    display: flex;
+    flex-direction: column;
+  }
+  .info-content h5 {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    color: #0f172a;
+  }
+  .info-content p {
+    color: #475569;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Gallery */
+  .destination-gallery {
+    margin-bottom: 2rem;
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  .gallery-item {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+  }
+  .gallery-item:hover {
+    transform: scale(1.02);
+  }
+  .gallery-item img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-item.large {
+    grid-row: span 2;
+  }
+  .gallery-item.large img {
+    height: 100%;
+  }
+
+  /* Back button */
+  .btn-explore {
+    background: #ea580c;
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.3s, transform 0.2s;
+  }
+  .btn-explore:hover {
+    background: #c2410c;
+    transform: translateY(-2px);
+    color: white;
+  }
+
+  /* Section headers */
+  .section-header h2 {
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+  }
+  .section-header p {
+    color: #64748b;
+    margin-bottom: 2rem;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .hero-image-wrapper {
+      height: 50vh;
+      min-height: 300px;
+    }
+    .hero-text h1.destination-name {
+      font-size: 2rem;
+    }
+    .destination-overview {
+      padding: 1.5rem;
+    }
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+    .info-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

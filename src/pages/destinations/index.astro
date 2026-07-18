@@ -11,19 +11,30 @@ const page = Math.max(1, Number(url.searchParams.get('page') ?? 1) || 1);
 const q = url.searchParams.get('q') ?? '';
 const location = url.searchParams.get('location') ?? '';
 
+// Filtering (q + location) now happens server-side in listDestinations, so
+// `destinations` here is already the correct page of correctly-filtered results —
+// no client-side re-filtering needed, and `totalPages` matches what's actually shown.
 const { data: destinations, totalPages } = await listDestinations(supabase, {
   status: 'published',
   q: q || undefined,
+  location: location || undefined,
   page,
   perPage: 9,
 });
 
-const filtered = location ? destinations.filter((d) => d.location.toLowerCase().includes(location.toLowerCase())) : destinations;
-
-// Distinct locations for the filter tabs (from this page's results; a lightweight approximation
-// since `location` isn't a normalized/indexed column in the schema).
-const { data: allForLocations } = await listDestinations(supabase, { status: 'published', perPage: 100 });
+// Distinct locations for the filter tabs. Built from the `q`-filtered (but not
+// location-filtered) result set, so tabs stay relevant to the current search
+// while still letting the user switch between all available locations.
+const { data: allForLocations } = await listDestinations(supabase, {
+  status: 'published',
+  q: q || undefined,
+  perPage: 100,
+});
 const locations = Array.from(new Set(allForLocations.map((d) => d.location))).slice(0, 6);
+
+// Build the "All" tab href once here (kept out of the markup below to avoid
+// any chance of it being interpolated as a plain string instead of JSX).
+const allHref = q ? `/destinations?q=${encodeURIComponent(q)}` : '/destinations';
 ---
 
 <PublicLayout title="Destinations" description="Jelajahi berbagai destinasi wisata pilihan kami.">
@@ -31,39 +42,62 @@ const locations = Array.from(new Set(allForLocations.map((d) => d.location))).sl
 
   <section id="travel-destinations" class="travel-destinations section">
     <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-          <h2>Discover Amazing Travel Destinations</h2>
-          <p class="mb-5">Kumpulan destinasi terbaik yang telah dikurasi khusus untuk memberikan pengalaman perjalanan tak terlupakan.</p>
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center mb-5">
+          <h2 class="hero-title">Discover Amazing Travel Destinations</h2>
+          <p class="hero-description">Kumpulan destinasi terbaik yang telah dikurasi khusus untuk memberikan pengalaman perjalanan tak terlupakan.</p>
         </div>
       </div>
 
+      <!-- Search -->
       <div class="row justify-content-center mb-4">
-        <div class="col-lg-6">
-          <form method="get" class="search-bar d-flex">
-            <input type="text" name="q" class="form-control" placeholder="Cari nama destinasi..." value={q} />
-            <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
-          </form>
+        <div class="col-lg-10">
+          <div class="search-container">
+            <form method="get" class="search-bar">
+              {location && <input type="hidden" name="location" value={location} />}
+              <input type="text" name="q" class="form-control" placeholder="Cari nama destinasi..." value={q} />
+              <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
+            </form>
+            {(q || location) && (
+              <div class="search-status">
+                {q && <>Menampilkan hasil untuk <strong>&ldquo;{q}&rdquo;</strong></>}
+                {q && location && <span> di </span>}
+                {location && <strong>{location}</strong>}
+                <a href="/destinations" class="clear-search">Hapus filter</a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div class="isotope-layout" data-default-filter="*" data-layout="fitRows" data-sort="original-order">
         {locations.length > 0 && (
-          <div class="filter-tabs">
-            <ul class="destination-filters isotope-filters">
-              <li class={!location ? 'filter-active' : ''}><a href="/destinations">All</a></li>
-              {locations.map((loc) => (
-                <li class={location === loc ? 'filter-active' : ''}><a href={`/destinations?location=${encodeURIComponent(loc)}`}>{loc}</a></li>
-              ))}
-            </ul>
+          <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+              <div class="filter-pills">
+                <a href={allHref} class={`filter-pill ${!location ? 'active' : ''}`}>All</a>
+                {locations.map((loc) => {
+                  const params = new URLSearchParams();
+                  params.set('location', loc);
+                  if (q) params.set('q', q);
+                  const href = `/destinations?${params.toString()}`;
+                  const isActive = location === loc;
+                  return (
+                    <a href={href} class={`filter-pill ${isActive ? 'active' : ''}`}>{loc}</a>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         <div class="row gy-4 isotope-container destination-grid">
-          {filtered.length === 0 && (
-            <div class="col-12 text-center text-muted py-5">Tidak ada destinasi ditemukan.</div>
+          {destinations.length === 0 && (
+            <div class="col-12 text-center text-muted py-5">
+              {q || location ? 'Tidak ada destinasi yang cocok dengan filter Anda.' : 'Tidak ada destinasi ditemukan.'}
+            </div>
           )}
-          {filtered.map((d, i) => {
+          {destinations.map((d, i) => {
             const cyclePos = i % 8; // large, small×4, medium×3 — matches the template's 8-item masonry rhythm
             const size = cyclePos === 0 ? 'large' : cyclePos < 5 ? 'small' : 'medium';
             const colClass = size === 'large' ? 'col-lg-12' : size === 'small' ? 'col-lg-3 col-md-6' : 'col-lg-4 col-md-6';
@@ -93,3 +127,118 @@ const locations = Array.from(new Set(allForLocations.map((d) => d.location))).sl
 
   <Pagination currentPage={page} totalPages={totalPages} basePath="/destinations" searchParams={url.searchParams} />
 </PublicLayout>
+
+<style>
+  .travel-destinations {
+    background: #f8fafc;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+  }
+  .hero-description {
+    color: #475569;
+    font-size: 1.15rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Search Bar — matches Tours page */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 50px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    transition: box-shadow 0.3s;
+  }
+  .search-bar:focus-within {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  }
+  .search-bar .form-control {
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 50px 0 0 50px;
+    box-shadow: none;
+    background: transparent;
+    flex: 1;
+  }
+  .search-bar .form-control:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  .search-btn {
+    background: #2563eb;
+    border: none;
+    color: white;
+    padding: 0.9rem 1.8rem;
+    font-size: 1.2rem;
+    border-radius: 0 50px 50px 0;
+    transition: background 0.2s;
+  }
+  .search-btn:hover {
+    background: #1d4ed8;
+  }
+
+  .search-status {
+    text-align: center;
+    color: #475569;
+    font-size: 0.95rem;
+  }
+  .search-status strong {
+    color: #0f172a;
+  }
+  .clear-search {
+    margin-left: 0.75rem;
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .clear-search:hover {
+    text-decoration: underline;
+  }
+
+  /* Filter Pills — matches Tours page */
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+  .filter-pill {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1.3rem;
+    border-radius: 30px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    text-decoration: none;
+    display: inline-block;
+  }
+  .filter-pill.active,
+  .filter-pill:hover {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.3);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.2rem;
+    }
+  }
+</style>

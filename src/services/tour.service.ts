@@ -39,7 +39,11 @@ export async function listTours(supabase: SupabaseClient, params: ListToursParam
   query = params.onlyDeleted ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
   if (params.status) query = query.eq('status', params.status);
   if (params.destinationId) query = query.eq('destination_id', params.destinationId);
-  if (params.q) query = query.ilike('title', `%${params.q}%`);
+  if (params.q) {
+    // Escape PostgREST special chars (%, comma) so user input can't break the filter syntax
+    const q = params.q.trim().replace(/[%,]/g, '\\$&');
+    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+  }
 
   const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, to);
   throwIfError(error);

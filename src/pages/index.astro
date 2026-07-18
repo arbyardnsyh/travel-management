@@ -23,17 +23,14 @@ const { data: featuredTours } = await listTours(supabase, { status: 'published',
 
 const testimonials = await listApprovedTestimonials(supabase, 6);
 
-// BUG FIX (Hero Image not reflecting admin Website Settings): the hero image
-// was hardcoded in `_travel-hero.scss` (url("../img/travel/showcase-1.webp"))
-// and `settings.hero_image` was never read anywhere on this page. We now
-// resolve it the same way every other image field does (publicStorageUrl()
-// handles both a Storage path and an already-absolute URL), keeping the
-// original template's own image as the fallback so nothing changes visually
-// until an admin actually sets a Hero Image in Website Settings.
 const heroImageUrl = (settings?.hero_image && publicStorageUrl(supabase, settings.hero_image)) || '/assets-user/img/travel/showcase-1.webp';
 ---
 
 <PublicLayout title="Home" description={settings?.hero_subtitle || 'Discover unforgettable destinations and book your next adventure with TravelTime.'} bodyClass="index-page">
+  
+  <!-- Skip to main content -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Travel Hero Section -->
   <section
     id="travel-hero"
@@ -41,327 +38,398 @@ const heroImageUrl = (settings?.hero_image && publicStorageUrl(supabase, setting
     style={`background: linear-gradient(color-mix(in srgb, var(--background-color), transparent 30%), color-mix(in srgb, var(--background-color), transparent 30%)), url('${heroImageUrl}') center center no-repeat; background-size: cover;`}
   >
     <div class="container">
-      <div class="row align-items-center">
-        <div class="col-lg-6">
-          <div class="content">
-            <h1>{settings?.hero_title || 'Discover the World with Us'}</h1>
-            <p class="lead">{settings?.hero_subtitle || 'Explore breathtaking destinations and create unforgettable memories with our expertly crafted tours.'}</p>
-            <div class="d-flex flex-wrap gap-3 mt-4">
+      <div class="row align-items-center justify-content-start">
+        <div class="col-12 col-lg-10">
+          <div class="content text-start hero-content">
+            <span class="hero-badge">
+              <i class="bi bi-airplane-engines-fill"></i> Travel &amp; Adventure
+            </span>
+            <h1 class="hero-title">{settings?.hero_title || 'Temukan Petualangan Tak Terlupakan di Seluruh Dunia'}</h1>
+            <span class="hero-accent-bar"></span>
+            <p class="lead hero-lead">{settings?.hero_subtitle || 'Dari pantai eksotis hingga pegunungan megah, kami hadir untuk mewujudkan perjalanan impian Anda dengan layanan terbaik dan harga terjangkau.'}</p>
+            <div class="d-flex flex-wrap gap-3 mt-4 hero-actions">
               <a href="/destinations" class="btn btn-primary">Start Exploring</a>
               <a href="/tours" class="btn btn-outline-light">View Tours</a>
             </div>
           </div>
         </div>
-        <div class="col-lg-6 mt-5 mt-lg-0">
-          <div class="booking-form">
-            <form action="/tours" method="get">
-              <div class="row gy-3">
-                <div class="col-md-12">
-                  <label for="destination">Destination</label>
-                  <input type="text" name="q" id="destination" class="form-control" placeholder="Where do you want to go?">
-                </div>
-                <div class="col-md-6">
-                  <label for="check-in">Check In</label>
-                  <input type="date" id="check-in" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label for="check-out">Check Out</label>
-                  <input type="date" id="check-out" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label for="adults">Adults</label>
-                  <input type="number" id="adults" class="form-control" min="1" max="20" value="2">
-                </div>
-                <div class="col-md-6">
-                  <label for="children">Children</label>
-                  <input type="number" id="children" class="form-control" min="0" max="20" value="0">
-                </div>
-                <div class="col-md-12 text-center">
-                  <button type="submit" class="btn btn-accent w-100 mt-3">Search Tours</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
       </div>
     </div>
-  </section><!-- /Travel Hero Section -->
+  </section>
 
-  <!-- Why Us Section -->
-  <section id="why-us" class="why-us section">
-    <div class="container">
-      <div class="content-grid">
-        <div class="row g-4 align-items-stretch">
-          <div class="col-lg-6">
-            <div class="about-block">
-              <div class="about-header">
-                <span class="section-badge">About Us</span>
-                <h3>Creating Unforgettable Travel Experiences</h3>
-              </div>
-              <div class="about-content">
-                <p>{settings?.website_name || 'TravelTime'} menghadirkan pengalaman perjalanan yang dirancang khusus, dari destinasi tersembunyi hingga ikon dunia yang wajib dikunjungi.</p>
-                <p>Tim kami memastikan setiap perjalanan berjalan lancar, aman, dan berkesan — mulai dari perencanaan hingga Anda kembali pulang.</p>
-                <div class="feature-list">
-                  <div class="feature-item"><i class="bi bi-check-circle-fill"></i><span>Pemandu lokal berpengalaman di setiap destinasi</span></div>
-                  <div class="feature-item"><i class="bi bi-check-circle-fill"></i><span>Itinerary yang disesuaikan untuk setiap wisatawan</span></div>
-                  <div class="feature-item"><i class="bi bi-check-circle-fill"></i><span>Dukungan pelanggan 24/7 sepanjang perjalanan</span></div>
-                </div>
-              </div>
-            </div>
+  <main id="main-content">
+    <!-- Why Us Section (hanya Why Choose Us, tanpa About Us) -->
+    <section id="why-us" class="why-us section">
+      <div class="container">
+        <div class="why-choose-wrapper">
+          <div class="section-header text-center">
+            <span class="section-badge">Why Choose Us</span>
+            <h3>What Makes Us Different</h3>
+            <p>Kami berkomitmen memberikan pengalaman perjalanan terbaik dari awal hingga akhir</p>
           </div>
-          <div class="col-lg-6">
-            <div class="image-showcase">
-              <div class="main-image">
-                <img src="/assets-user/img/travel/showcase-12.webp" alt="Travel Adventure" class="img-fluid rounded-3">
-                <div class="overlay-badge">
-                  <div class="badge-content">
-                    <i class="bi bi-award-fill"></i>
-                    <div class="badge-text"><strong>Award Winner</strong><span>Best Travel Agency 2026</span></div>
-                  </div>
+          <div class="features-container">
+            <div class="row g-4">
+              <div class="col-lg-3 col-md-6">
+                <div class="feature-box reveal">
+                  <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-compass"></i></div></div>
+                  <h4>Expert Navigation</h4>
+                  <p>Rute perjalanan yang matang, disusun oleh ahli travel berpengalaman</p>
                 </div>
               </div>
-              <div class="floating-card">
-                <img src="/assets-user/img/travel/misc-8.webp" alt="Happy Travelers" class="img-fluid rounded-2">
-                <div class="card-content">
-                  <div class="rating">
-                    <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    <span>4.9/5</span>
-                  </div>
-                  <p>"Amazing experience!"</p>
+              <div class="col-lg-3 col-md-6">
+                <div class="feature-box reveal" style="transition-delay: 0.1s;">
+                  <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-heart-fill"></i></div></div>
+                  <h4>Personalized Care</h4>
+                  <p>Layanan yang disesuaikan dengan kebutuhan setiap wisatawan</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div><!-- End Main Content Grid -->
-
-      <div class="why-choose-wrapper">
-        <div class="section-header text-center">
-          <span class="section-badge">Why Choose Us</span>
-          <h3>What Makes Us Different</h3>
-          <p>Kami berkomitmen memberikan pengalaman perjalanan terbaik dari awal hingga akhir</p>
-        </div>
-        <div class="features-container">
-          <div class="row g-4">
-            <div class="col-lg-3 col-md-6">
-              <div class="feature-box">
-                <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-compass"></i></div></div>
-                <h4>Expert Navigation</h4>
-                <p>Rute perjalanan yang matang, disusun oleh ahli travel berpengalaman</p>
+              <div class="col-lg-3 col-md-6">
+                <div class="feature-box reveal" style="transition-delay: 0.2s;">
+                  <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-lightning-charge-fill"></i></div></div>
+                  <h4>Instant Booking</h4>
+                  <p>Proses pemesanan cepat, mudah, dan tanpa ribet</p>
+                </div>
               </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-              <div class="feature-box">
-                <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-heart-fill"></i></div></div>
-                <h4>Personalized Care</h4>
-                <p>Layanan yang disesuaikan dengan kebutuhan setiap wisatawan</p>
-              </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-              <div class="feature-box">
-                <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-lightning-charge-fill"></i></div></div>
-                <h4>Instant Booking</h4>
-                <p>Proses pemesanan cepat, mudah, dan tanpa ribet</p>
-              </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-              <div class="feature-box">
-                <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-globe-americas"></i></div></div>
-                <h4>Worldwide Coverage</h4>
-                <p>Jangkauan destinasi luas di seluruh penjuru dunia</p>
+              <div class="col-lg-3 col-md-6">
+                <div class="feature-box reveal" style="transition-delay: 0.3s;">
+                  <div class="feature-icon-wrapper"><div class="feature-icon"><i class="bi bi-globe-americas"></i></div></div>
+                  <h4>Worldwide Coverage</h4>
+                  <p>Jangkauan destinasi luas di seluruh penjuru dunia</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </section><!-- /Why Us Section -->
+    </section>
 
-  <!-- Featured Destinations Section -->
-  <section id="featured-destinations" class="featured-destinations section">
-    <SectionTitle eyebrow="Check Our" heading="Featured Destinations" description="Featured Destinations" />
-    <div class="container">
-      <div class="row gy-4">
-        {destinationsForHero.length === 0 && (
-          <div class="col-12 text-center text-muted py-5">Belum ada destinasi. Tambahkan melalui dashboard admin.</div>
-        )}
-        {destinationsForHero.map((d) => (
-          <div class="col-lg-4 col-md-6">
-            <div class="destination-card">
-              <div class="image-wrapper">
-                <img src={publicStorageUrl(supabase, d.thumbnail) || '/assets-user/img/travel/destination-1.webp'} alt={d.name} class="img-fluid" loading="lazy" />
-                {d.is_featured && (
-                  <div class="overlay">
-                    <div class="badge featured">Editor's Pick</div>
-                  </div>
-                )}
-              </div>
-              <div class="content">
-                <h4>{d.name}</h4>
-                {d.description && <p>{d.description.slice(0, 110)}{d.description.length > 110 ? '…' : ''}</p>}
-                <div class="card-footer">
-                  <div class="tours-count">{d.location}</div>
-                  <a href={`/destinations/${d.slug}`} class="explore-btn">Explore <i class="bi bi-arrow-right"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div class="destinations-cta">
-        <div class="row justify-content-center">
-          <div class="col-lg-8 text-center">
-            <h3>Can't Decide Where to Go?</h3>
-            <p>Tim ahli travel kami siap membantu Anda menemukan destinasi sempurna sesuai preferensi, budget, dan gaya perjalanan Anda.</p>
-            <div class="cta-buttons">
-              <a href="/destinations" class="btn btn-primary">View All Destinations</a>
-              <a href="/contact" class="btn btn-outline">Talk to Expert</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section><!-- /Featured Destinations Section -->
-
-  <!-- Featured Tours Section -->
-  <section id="featured-tours" class="featured-tours section">
-    <SectionTitle eyebrow="Check Our" heading="Featured Tours" description="Featured Tours" />
-    <div class="container">
-      <div class="row g-4">
-        {featuredTours.length === 0 && (
-          <div class="col-12 text-center text-muted py-5">Belum ada tour. Tambahkan melalui dashboard admin.</div>
-        )}
-        {featuredTours.map((t) => (
-          <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="destination-card">
-              <div class="destination-overlay">
-                <img src={publicStorageUrl(supabase, t.thumbnail) || '/assets-user/img/travel/tour-12.webp'} alt={t.title} class="img-fluid" loading="lazy" />
-                <div class="card-overlay">
-                  <div class="badge-container">
-                    <span class="price-tag">
-                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(t.price)}
-                    </span>
-                  </div>
-                  <div class="card-details">
-                    <h5>{t.title}</h5>
-                    <div class="meta-info">
-                      {t.duration && <span><i class="bi bi-calendar3"></i> {t.duration}</span>}
-                      {t.destination && <span><i class="bi bi-geo-alt"></i> {t.destination.location}</span>}
+    <!-- Featured Destinations Section -->
+    <section id="featured-destinations" class="featured-destinations section">
+      <SectionTitle eyebrow="Check Our" heading="Featured Destinations" description="Featured Destinations" />
+      <div class="container">
+        <div class="row gy-4">
+          {destinationsForHero.length === 0 && (
+            <div class="col-12 text-center text-muted py-5">Belum ada destinasi. Tambahkan melalui dashboard admin.</div>
+          )}
+          {destinationsForHero.map((d, i) => (
+            <div class="col-lg-4 col-md-6">
+              <div class="destination-card reveal" style={`transition-delay: ${(i % 3) * 0.12}s;`}>
+                <div class="image-wrapper">
+                  <img src={publicStorageUrl(supabase, d.thumbnail) || '/assets-user/img/travel/destination-1.webp'} alt={d.name} class="img-fluid" loading="lazy" width="400" height="300" />
+                  {d.is_featured && (
+                    <div class="overlay">
+                      <div class="badge featured">Editor's Pick</div>
                     </div>
-                    {t.description && <p>{t.description.slice(0, 90)}{t.description.length > 90 ? '…' : ''}</p>}
-                    <div class="action-row">
-                      <a href={`/tours/${t.slug}`} class="explore-btn">Explore Tour</a>
-                    </div>
+                  )}
+                </div>
+                <div class="content">
+                  <h4>{d.name}</h4>
+                  {d.description && <p>{d.description.slice(0, 110)}{d.description.length > 110 ? '…' : ''}</p>}
+                  <div class="card-footer">
+                    <div class="tours-count"><i class="bi bi-geo-alt-fill"></i> {d.location}</div>
+                    <a href={`/destinations/${d.slug}`} class="explore-btn">Explore <i class="bi bi-arrow-right"></i></a>
                   </div>
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        <div class="destinations-cta">
+          <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+              <h3>Can't Decide Where to Go?</h3>
+              <p>Tim ahli travel kami siap membantu Anda menemukan destinasi sempurna sesuai preferensi, budget, dan gaya perjalanan Anda.</p>
+              <div class="cta-buttons">
+                <a href="/destinations" class="btn btn-primary">View All Destinations</a>
+                <a href="/contact" class="btn btn-outline-primary">Talk to Expert</a>
+              </div>
+            </div>
           </div>
-        ))}
+        </div>
       </div>
+    </section>
 
-      <div class="text-center mt-5">
-        <a href="/tours" class="discover-more-btn">Discover More Adventures</a>
-      </div>
-    </div>
-  </section><!-- /Featured Tours Section -->
-
-  <!-- Testimonials Home Section -->
-  <section id="testimonials-home" class="testimonials-home section">
-    <SectionTitle eyebrow="What Our Customers" heading="Testimonials" description="Are Saying" />
-    <div class="container">
-      {testimonials.length === 0 ? (
-        <p class="text-center text-muted py-4">Belum ada testimoni.</p>
-      ) : (
-        <div class="swiper init-swiper">
-          <script type="application/json" class="swiper-config" set:html={JSON.stringify({
-            loop: true,
-            speed: 600,
-            autoplay: { delay: 5000 },
-            slidesPerView: 'auto',
-            pagination: { el: '.swiper-pagination', type: 'bullets', clickable: true },
-          })} />
-          <div class="swiper-wrapper">
-            {testimonials.map((tst) => (
-              <div class="swiper-slide">
-                <div class="testimonial-item">
-                  <div class="row gy-4 justify-content-center">
-                    <div class="col-lg-6">
-                      <div class="testimonial-content">
-                        <p>
-                          <i class="bi bi-quote quote-icon-left"></i>
-                          <span>{tst.message}</span>
-                          <i class="bi bi-quote quote-icon-right"></i>
-                        </p>
-                        <h3>{tst.name}</h3>
-                        {tst.job && <h4>{tst.job}</h4>}
-                        <div class="stars">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <i class={i < tst.rating ? 'bi bi-star-fill' : 'bi bi-star'}></i>
-                          ))}
-                        </div>
+    <!-- Featured Tours Section -->
+    <section id="featured-tours" class="featured-tours section">
+      <SectionTitle eyebrow="Check Our" heading="Featured Tours" description="Featured Tours" />
+      <div class="container">
+        <div class="row g-4">
+          {featuredTours.length === 0 && (
+            <div class="col-12 text-center text-muted py-5">Belum ada tour. Tambahkan melalui dashboard admin.</div>
+          )}
+          {featuredTours.map((t, i) => (
+            <div class="col-xl-3 col-lg-4 col-md-6">
+              <div class="destination-card reveal" style={`transition-delay: ${(i % 4) * 0.1}s;`}>
+                <div class="destination-overlay">
+                  <img src={publicStorageUrl(supabase, t.thumbnail) || '/assets-user/img/travel/tour-12.webp'} alt={t.title} class="img-fluid" loading="lazy" width="400" height="500" />
+                  <div class="card-overlay">
+                    <div class="badge-container">
+                      <span class="price-tag">
+                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(t.price)}
+                      </span>
+                    </div>
+                    <div class="card-details">
+                      <h5>{t.title}</h5>
+                      <div class="meta-info">
+                        {t.duration && <span><i class="bi bi-calendar3"></i> {t.duration}</span>}
+                        {t.destination && <span><i class="bi bi-geo-alt"></i> {t.destination.location}</span>}
+                      </div>
+                      {t.description && <p>{t.description.slice(0, 90)}{t.description.length > 90 ? '…' : ''}</p>}
+                      <div class="action-row">
+                        <a href={`/tours/${t.slug}`} class="btn btn-sm btn-light explore-btn">Explore Tour</a>
                       </div>
                     </div>
-                    <div class="col-lg-2 text-center">
-                      <img src={tst.photo || '/assets-user/img/person/person-m-9.webp'} class="img-fluid testimonial-img" alt={tst.name} />
-                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <div class="swiper-pagination"></div>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
-  </section><!-- /Testimonials Home Section -->
 
-  <!-- Call To Action Section -->
-  <section id="call-to-action" class="call-to-action section">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-          <h2>Ready to Start Your Next Adventure?</h2>
-          <p>Temukan destinasi menakjubkan, ciptakan kenangan tak terlupakan, dan jelajahi dunia bersama paket perjalanan pilihan kami.</p>
-          <div class="cta-buttons">
-            <a href="/destinations" class="btn-primary">Explore Destinations</a>
-            <a href="/tours" class="btn-secondary">Plan Your Trip</a>
+        <div class="text-center mt-5">
+          <a href="/tours" class="btn btn-outline-primary discover-more-btn">Discover More Adventures <i class="bi bi-arrow-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials-home" class="testimonials-home section">
+      <SectionTitle eyebrow="What Our Customers" heading="Testimonials" description="Are Saying" />
+      <div class="container">
+        {testimonials.length === 0 ? (
+          <p class="text-center text-muted py-4">Belum ada testimoni.</p>
+        ) : (
+          <div class="swiper init-swiper reveal">
+            <script type="application/json" class="swiper-config" set:html={JSON.stringify({
+              loop: true,
+              speed: 600,
+              autoplay: { delay: 5000 },
+              slidesPerView: 1,
+              spaceBetween: 30,
+              pagination: { el: '.swiper-pagination', type: 'bullets', clickable: true },
+              breakpoints: {
+                768: { slidesPerView: 2 },
+                992: { slidesPerView: 3 }
+              }
+            })} />
+            <div class="swiper-wrapper">
+              {testimonials.map((tst) => (
+                <div class="swiper-slide">
+                  <div class="testimonial-card text-center p-4 bg-white rounded-3 shadow-sm h-100">
+                    <div class="testimonial-avatar mx-auto mb-3">
+                      <img src={tst.photo || '/assets-user/img/person/person-m-9.webp'} class="rounded-circle" alt={tst.name} width="80" height="80" loading="lazy" style="object-fit: cover;" />
+                    </div>
+                    <div class="stars mb-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <i class={i < tst.rating ? 'bi bi-star-fill text-warning' : 'bi bi-star text-muted'}></i>
+                      ))}
+                    </div>
+                    <p class="testimonial-message fst-italic">"{tst.message}"</p>
+                    <h5 class="mb-1">{tst.name}</h5>
+                    {tst.job && <p class="small text-muted">{tst.job}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div class="swiper-pagination mt-4 position-relative"></div>
+          </div>
+        )}
+      </div>
+    </section>
+
+    <!-- Call To Action Section -->
+    <section id="call-to-action" class="call-to-action section">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8 text-center reveal">
+            <h2>Ready to Start Your Next Adventure?</h2>
+            <p>Temukan destinasi menakjubkan, ciptakan kenangan tak terlupakan, dan jelajahi dunia bersama paket perjalanan pilihan kami.</p>
+            <div class="cta-buttons">
+              <a href="/destinations" class="btn btn-primary">Explore Destinations</a>
+              <a href="/tours" class="btn btn-primary">Plan Your Trip</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-5">
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-item text-center reveal"><div class="icon"><i class="bi bi-globe"></i></div><h4>50+ Destinations</h4><p>Jelajahi destinasi menakjubkan di seluruh dunia</p></div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-item text-center reveal" style="transition-delay: 0.1s;"><div class="icon"><i class="bi bi-shield-check"></i></div><h4>Safe &amp; Secure</h4><p>Bepergian dengan percaya diri bersama jaminan keamanan kami</p></div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-item text-center reveal" style="transition-delay: 0.2s;"><div class="icon"><i class="bi bi-headset"></i></div><h4>24/7 Support</h4><p>Bantuan siaga kapan pun Anda membutuhkan</p></div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-item text-center reveal" style="transition-delay: 0.3s;"><div class="icon"><i class="bi bi-percent"></i></div><h4>Best Prices</h4><p>Harga kompetitif dengan penawaran eksklusif</p></div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="row text-center">
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="15000" data-purecounter-duration="2"></span><span class="stat-label">Happy Travelers</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="127" data-purecounter-duration="2"></span><span class="stat-label">Countries Covered</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="98" data-purecounter-duration="2"></span><span class="stat-label">Satisfaction Rate</span></div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="12" data-purecounter-duration="2"></span><span class="stat-label">Years Experience</span></div>
+            </div>
           </div>
         </div>
       </div>
+    </section>
+  </main>
 
-      <div class="row mt-5">
-        <div class="col-lg-3 col-md-6">
-          <div class="feature-item text-center"><div class="icon"><i class="bi bi-globe"></i></div><h4>50+ Destinations</h4><p>Jelajahi destinasi menakjubkan di seluruh dunia</p></div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="feature-item text-center"><div class="icon"><i class="bi bi-shield-check"></i></div><h4>Safe &amp; Secure</h4><p>Bepergian dengan percaya diri bersama jaminan keamanan kami</p></div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="feature-item text-center"><div class="icon"><i class="bi bi-headset"></i></div><h4>24/7 Support</h4><p>Bantuan siaga kapan pun Anda membutuhkan</p></div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <div class="feature-item text-center"><div class="icon"><i class="bi bi-percent"></i></div><h4>Best Prices</h4><p>Harga kompetitif dengan penawaran eksklusif</p></div>
-        </div>
-      </div>
-
-      <div class="stats-section">
-        <div class="row text-center">
-          <div class="col-lg-3 col-md-6">
-            <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="15000" data-purecounter-duration="2"></span><span class="stat-label">Happy Travelers</span></div>
-          </div>
-          <div class="col-lg-3 col-md-6">
-            <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="127" data-purecounter-duration="2"></span><span class="stat-label">Countries Covered</span></div>
-          </div>
-          <div class="col-lg-3 col-md-6">
-            <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="98" data-purecounter-duration="2"></span><span class="stat-label">Satisfaction Rate</span></div>
-          </div>
-          <div class="col-lg-3 col-md-6">
-            <div class="stat-item"><span class="stat-number purecounter" data-purecounter-start="0" data-purecounter-end="12" data-purecounter-duration="2"></span><span class="stat-label">Years Experience</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section><!-- /Call To Action Section -->
 </PublicLayout>
+
+<style>
+  .skip-link {
+    position: absolute;
+    top: -100%;
+    left: 0;
+    z-index: 9999;
+    padding: 0.5rem 1rem;
+    background: var(--accent-color);
+    color: #fff;
+    text-decoration: none;
+    transition: top 0.2s;
+  }
+  .skip-link:focus {
+    top: 0;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(45px) scale(0.97);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.reveal-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .hero-content > * {
+    opacity: 0;
+    transform: translateX(-45px);
+    animation: heroSlideIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    margin-bottom: 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #fff;
+    background: color-mix(in srgb, var(--accent-color, #ff6b35), transparent 15%);
+    border-radius: 50px;
+    animation-delay: 0.1s;
+  }
+  .hero-title {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 0;
+    color: #fff;
+    animation-delay: 0.28s;
+  }
+  .hero-accent-bar {
+    display: block;
+    width: 90px;
+    height: 4px;
+    margin: 18px 0 20px;
+    background: var(--accent-color, #ff6b35);
+    border-radius: 4px;
+    transform-origin: left;
+    animation: heroBarGrow 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: 0.55s;
+    opacity: 1 !important;
+  }
+  .hero-lead {
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 600px;
+    animation-delay: 0.42s;
+  }
+  .hero-actions {
+    animation-delay: 0.7s;
+  }
+  @keyframes heroSlideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes heroBarGrow {
+    from { width: 0; }
+    to { width: 90px; }
+  }
+
+  #travel-hero {
+    background-size: cover !important;
+    background-position: center center !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    image-rendering: -webkit-optimize-contrast;
+    position: relative;
+  }
+  #travel-hero::before,
+  #travel-hero::after {
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .hero-content > * {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+    .hero-accent-bar { width: 90px; animation: none; }
+  }
+</style>
+
+<script>
+  function initScrollReveal() {
+    const revealEls = document.querySelectorAll('.reveal');
+    if (!revealEls.length) return;
+    if (!('IntersectionObserver' in window)) {
+      revealEls.forEach((el) => el.classList.add('reveal-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('reveal-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
+    );
+    revealEls.forEach((el) => observer.observe(el));
+  }
+
+  document.addEventListener('DOMContentLoaded', initScrollReveal);
+  document.addEventListener('astro:page-load', initScrollReveal);
+</script>

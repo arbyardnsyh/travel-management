@@ -30,3 +30,112 @@ const supabase = Astro.locals.supabase;
     <a href={`/tours/${t.slug}`} class="btn btn-primary btn-sm mt-3">Lihat Detail</a>
   </div>
 </div>
+
+<style>
+  .tour-item {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .tour-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  }
+
+  .tour-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .tour-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .tour-availability {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(15, 23, 42, 0.85);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+  }
+
+  .tour-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 1.5rem;
+  }
+  .tour-details h4 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.9em;
+    line-height: 1.45;
+  }
+  .tour-details p {
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.7em;
+  }
+
+  .tour-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: #475569;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .tour-highlights span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .tour-pricing {
+    margin-top: auto;
+    padding-top: 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+  }
+  .tour-pricing .price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2563eb;
+  }
+  .tour-pricing .per {
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+
+  .tour-details .btn {
+    width: 100%;
+    border-radius: 30px;
+    font-weight: 600;
+  }
+</style>

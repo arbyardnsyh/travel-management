@@ -20,6 +20,8 @@ const TABLE = 'destinations';
 export interface ListDestinationsParams extends BaseListParams {
   status?: ContentStatus;
   featuredOnly?: boolean;
+  /** Exact-match filter on `location`, used by the public destinations page's filter tabs. */
+  location?: string;
   /** Trash view (Batch 3 admin only) — when true, only soft-deleted rows are returned. */
   onlyDeleted?: boolean;
 }
@@ -49,7 +51,14 @@ export async function listDestinations(
   query = params.onlyDeleted ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
   if (params.status) query = query.eq('status', params.status);
   if (params.featuredOnly) query = query.eq('is_featured', true);
-  if (params.q) query = query.ilike('name', `%${params.q}%`);
+  if (params.q) {
+    // Escape PostgREST special chars (%, comma) so user input can't break the filter syntax
+    const q = params.q.trim().replace(/[%,]/g, '\\$&');
+    query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
+  }
+  // Exact match: `location` here comes from the pre-built filter tabs (distinct known values),
+  // not free-text input, so `.eq` (not `.ilike`) is correct and avoids accidental substring matches.
+  if (params.location) query = query.eq('location', params.location);
 
   const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, to);
   throwIfError(error);

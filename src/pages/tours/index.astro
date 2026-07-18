@@ -19,8 +19,6 @@ const { data: tours, totalPages } = await listTours(supabase, {
   perPage: 8,
 });
 
-// "Featured Hero Tour" showcase — highest-priced published tour stands in for
-// the template's hand-picked "Editor's Choice" (no such flag exists on `tours`).
 const { data: allPublished } = await listTours(supabase, { status: 'published', perPage: 100 });
 const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
 ---
@@ -37,7 +35,7 @@ const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
         </div>
       </div>
 
-      <!-- Search & Filters -->
+      <!-- Search -->
       <div class="row justify-content-center mb-5">
         <div class="col-lg-10">
           <div class="search-container">
@@ -45,21 +43,18 @@ const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
               <input type="text" name="q" class="form-control" placeholder="Mau ke mana?" value={q} />
               <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
             </form>
-            <!-- Category taxonomy doesn't exist on `tours` in the schema; pills are
-                 kept for visual parity but are non-functional (no data to filter by). -->
-            <div class="filter-pills">
-              <button class="filter-pill active" type="button">All Tours</button>
-              <button class="filter-pill" type="button">Adventure</button>
-              <button class="filter-pill" type="button">Luxury</button>
-              <button class="filter-pill" type="button">Cultural</button>
-              <button class="filter-pill" type="button">Family</button>
-            </div>
+            {q && (
+              <div class="search-status">
+                Menampilkan hasil untuk <strong>&ldquo;{q}&rdquo;</strong>
+                <a href="/tours" class="clear-search">Hapus pencarian</a>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <!-- Featured Hero Tour -->
-      {featured && (
+      <!-- Featured Hero Tour: only show on the default (unfiltered, page 1) view -->
+      {featured && !q && page === 1 && (
         <div class="row mb-5">
           <div class="col-12">
             <div class="featured-hero-tour">
@@ -87,51 +82,24 @@ const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
         </div>
       )}
 
-      <!-- Quick Categories: illustrative only — `tours` has no category taxonomy in the schema. -->
-      <div class="row mb-5">
-        <div class="col-12">
-          <h3 class="section-subtitle">Explore by Interest</h3>
-          <div class="categories-grid">
-            <div class="category-item">
-              <div class="category-visual"><img src="/assets-user/img/travel/misc-3.webp" alt="Mountain Adventures" class="img-fluid" /></div>
-              <h5>Mountain Adventures</h5>
-            </div>
-            <div class="category-item">
-              <div class="category-visual"><img src="/assets-user/img/travel/misc-7.webp" alt="Cultural Heritage" class="img-fluid" /></div>
-              <h5>Cultural Heritage</h5>
-            </div>
-            <div class="category-item">
-              <div class="category-visual"><img src="/assets-user/img/travel/misc-11.webp" alt="Coastal Escapes" class="img-fluid" /></div>
-              <h5>Coastal Escapes</h5>
-            </div>
-            <div class="category-item">
-              <div class="category-visual"><img src="/assets-user/img/travel/misc-15.webp" alt="Wildlife Safari" class="img-fluid" /></div>
-              <h5>Wildlife Safari</h5>
-            </div>
-            <div class="category-item">
-              <div class="category-visual"><img src="/assets-user/img/travel/misc-2.webp" alt="Urban Explorer" class="img-fluid" /></div>
-              <h5>Urban Explorer</h5>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="row mb-5">
         <div class="col-12">
           <div class="tours-header">
-            <h3 class="section-subtitle">All Journeys</h3>
+            <h3 class="section-subtitle">{q ? 'Hasil Pencarian' : 'All Journeys'}</h3>
           </div>
 
           <div class="tours-grid">
             {tours.length === 0 && (
-              <p class="text-center text-muted py-5">Tidak ada tour ditemukan.</p>
+              <p class="text-center text-muted py-5">
+                {q ? `Tidak ada tour yang cocok dengan "${q}".` : 'Tidak ada tour ditemukan.'}
+              </p>
             )}
             {tours.map((t) => <TourCard tour={t} />)}
           </div>
         </div>
       </div>
 
-      <!-- Limited-Time Offers: no promo/discount table in the schema; kept static for visual parity. -->
+      <!-- Limited-Time Offers -->
       <div class="row mb-5">
         <div class="col-12">
           <h3 class="section-subtitle">Limited-Time Offers</h3>
@@ -174,3 +142,309 @@ const featured = [...allPublished].sort((a, b) => b.price - a.price)[0] ?? null;
 
   <Pagination currentPage={page} totalPages={totalPages} basePath="/tours" searchParams={url.searchParams} />
 </PublicLayout>
+
+<style>
+  .travel-tours {
+    background: #f8fafc;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+  }
+  .hero-description {
+    color: #475569;
+    font-size: 1.15rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Search Bar */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 50px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    transition: box-shadow 0.3s;
+  }
+  .search-bar:focus-within {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  }
+  .search-bar .form-control {
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 50px 0 0 50px;
+    box-shadow: none;
+    background: transparent;
+  }
+  .search-bar .form-control:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  .search-btn {
+    background: #2563eb;
+    border: none;
+    color: white;
+    padding: 0.9rem 1.8rem;
+    font-size: 1.2rem;
+    border-radius: 0 50px 50px 0;
+    transition: background 0.2s;
+  }
+  .search-btn:hover {
+    background: #1d4ed8;
+  }
+
+  .search-status {
+    text-align: center;
+    color: #475569;
+    font-size: 0.95rem;
+  }
+  .search-status strong {
+    color: #0f172a;
+  }
+  .clear-search {
+    margin-left: 0.75rem;
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .clear-search:hover {
+    text-decoration: underline;
+  }
+
+  /* Featured Hero Tour */
+  .featured-hero-tour {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 0;
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s;
+  }
+  .featured-hero-tour:hover {
+    transform: translateY(-4px);
+  }
+  .featured-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    min-height: 320px;
+    display: block;
+  }
+  .featured-content {
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+  }
+  .featured-badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+    width: fit-content;
+  }
+  .featured-content h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: #0f172a;
+    margin-bottom: 0.8rem;
+  }
+  .featured-content p {
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+  }
+  .featured-meta {
+    display: flex;
+    gap: 1.5rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+  .featured-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+  }
+  .featured-price .from {
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+  .featured-price .amount {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2563eb;
+  }
+  .featured-actions .btn-primary {
+    background: #2563eb;
+    border: none;
+    padding: 0.7rem 2rem;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: background 0.3s, transform 0.2s;
+  }
+  .featured-actions .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+  }
+
+  /* Section Subtitle */
+  .section-subtitle {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2rem;
+    position: relative;
+    display: inline-block;
+  }
+  .section-subtitle:after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60%;
+    height: 4px;
+    background: #2563eb;
+    border-radius: 2px;
+  }
+
+  /* Tours Grid — equal-height rows so every TourCard matches */
+  .tours-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.8rem;
+    align-items: stretch;
+  }
+
+  /* Offers Container */
+  .offers-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+  .offer-card {
+    border-radius: 24px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s;
+  }
+  .offer-card:hover {
+    transform: translateY(-5px);
+  }
+  .offer-image img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+  }
+  .offer-content {
+    padding: 2rem;
+  }
+  .offer-tag {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    font-weight: 600;
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .offer-content h4 {
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 0.6rem;
+    color: #0f172a;
+  }
+  .offer-content p {
+    color: #475569;
+    margin-bottom: 1.5rem;
+  }
+  .btn-accent {
+    background: #0f172a;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.3s;
+  }
+  .btn-accent:hover {
+    background: #1e293b;
+    color: white;
+  }
+
+  /* Consultation CTA */
+  .consultation-cta {
+    background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: white;
+    margin-top: 2rem;
+    box-shadow: 0 25px 50px rgba(37, 99, 235, 0.25);
+  }
+  .consultation-cta h3 {
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  .consultation-cta p {
+    opacity: 0.9;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+  .consultation-cta .btn-primary {
+    background: white;
+    color: #2563eb;
+    border: none;
+    padding: 0.8rem 2.2rem;
+    border-radius: 30px;
+    font-weight: 700;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+  .consultation-cta .btn-primary:hover {
+    background: #f1f5f9;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.2rem;
+    }
+    .featured-hero-tour {
+      grid-template-columns: 1fr;
+    }
+    .featured-image img {
+      height: 250px;
+    }
+    .tours-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
