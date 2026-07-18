@@ -63,7 +63,7 @@ const page = await getPageBySlug(supabase, 'about');
                     class="w-100" 
                     style="object-fit: cover; height: 280px;"
                     loading="lazy"
-                    onerror="this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp';"
+                    onerror="(() => { this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp'; })()"
                   />
                 </div>
               </div>
@@ -75,7 +75,7 @@ const page = await getPageBySlug(supabase, 'about');
                     class="w-100" 
                     style="object-fit: cover; height: 280px;"
                     loading="lazy"
-                    onerror="this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp';"
+                    onerror="(() => { this.onerror=null; this.src='/assets-user/img/travel/showcase-1.webp'; })()"
                   />
                 </div>
               </div>
@@ -89,7 +89,6 @@ const page = await getPageBySlug(supabase, 'about');
 
       <!-- Fitur-fitur -->
       <div class="row g-4 mt-5 pt-5 border-top">
-        <!-- ... (sama seperti sebelumnya) ... -->
         <div class="col-12 text-center mb-4">
           <span class="section-badge reveal">Our Values</span>
           <h3 class="reveal">Mengapa Memilih Kami?</h3>
@@ -282,7 +281,6 @@ const page = await getPageBySlug(supabase, 'about');
     .feature-card {
       padding: 1.5rem 1rem;
     }
-    /* Pastikan grid tetap 2 kolom di mobile, tapi bisa diperkecil tingginya */
     .grid-image-wrapper img {
       height: 200px !important;
     }
@@ -311,12 +309,17 @@ const page = await getPageBySlug(supabase, 'about');
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const counter = entry.target;
-          const target = +counter.getAttribute('data-target');
+          
+          // Ambil target dengan aman, gunakan fallback jika null
+          const targetAttribute = counter.getAttribute('data-target');
+          const target = targetAttribute ? +targetAttribute : 0;
+          
           const duration = 1500;
           const start = 0;
           const startTime = performance.now();
 
-          function updateCounter(currentTime) {
+          // Menambahkan type 'number' pada parameter currentTime
+          function updateCounter(currentTime: number) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const currentValue = Math.floor(progress * (target - start) + start);
@@ -324,7 +327,7 @@ const page = await getPageBySlug(supabase, 'about');
             if (progress < 1) {
               requestAnimationFrame(updateCounter);
             } else {
-              counter.textContent = target + (counter.closest('.stat-item')?.classList.contains('percentage') ? '%' : '');
+              counter.textContent = target.toString() + (counter.closest('.stat-item')?.classList.contains('percentage') ? '%' : '');
             }
           }
           requestAnimationFrame(updateCounter);
